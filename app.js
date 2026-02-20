@@ -2025,6 +2025,7 @@ function renderDetailHeader() {
     }
     if (elements.detailLinks) {
       elements.detailLinks.innerHTML = "";
+      elements.detailLinks.hidden = true;
     }
     if (elements.detailQuickStats) {
       elements.detailQuickStats.innerHTML = "";
@@ -2045,9 +2046,13 @@ function renderDetailHeader() {
   }
   if (elements.detailLinks) {
     const website = OFFICIAL_WEBSITE_BY_ID[investor.id] || "";
-    elements.detailLinks.innerHTML = website
-      ? `<a class="detail-link-btn" href="${website}" target="_blank" rel="noopener noreferrer">Official Website</a>`
-      : `<span class="detail-link-muted">Official website not publicly listed</span>`;
+    if (website) {
+      elements.detailLinks.innerHTML = `<a class="detail-link-btn" href="${website}" target="_blank" rel="noopener noreferrer">Official Website</a>`;
+      elements.detailLinks.hidden = false;
+    } else {
+      elements.detailLinks.innerHTML = "";
+      elements.detailLinks.hidden = true;
+    }
   }
 
   const statRows = [
@@ -2327,7 +2332,6 @@ function renderChangesCards() {
             <div class="change-metric ${netFlow >= 0 ? "up" : "down"}">
               <span>Net Change</span>
               <strong>${formatDeltaByUnit(netFlow, unit)}</strong>
-              <em>${unit.short}</em>
             </div>
           </div>
         </div>
