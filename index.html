@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>13F Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260220-ui66" />
+  </head>
+  <body>
+    <div class="site-bg"></div>
+    <div class="noise-layer"></div>
+    <main class="layout two-step-layout">
+      <section id="listView" class="catalog-view">
+        <div class="catalog-shell">
+          <div class="catalog-head">
+            <p class="eyebrow">STEP 1 · INSTITUTION SELECTOR</p>
+            <h1>13F Tracker</h1>
+            <p class="hero-desc">Select an institution to view 13F holdings and quarterly changes.</p>
+          </div>
+          <div class="catalog-tools">
+            <p id="catalogMeta" class="catalog-meta"></p>
+          </div>
+          <div id="institutionGrid" class="institution-grid"></div>
+        </div>
+      </section>
+
+      <section id="detailView" class="detail-view" hidden>
+        <header class="panel detail-hero-panel">
+          <div class="detail-top-row">
+            <button id="backToListBtn" class="back-btn" type="button">Back to Institutions</button>
+            <label class="quarter-picker detail-quarter" for="quarterSelect">
+              <span>Quarter</span>
+              <select id="quarterSelect" aria-label="Quarter"></select>
+            </label>
+          </div>
+          <div class="detail-heading">
+            <p class="eyebrow">STEP 2 · INSTITUTION DETAIL</p>
+            <h2 id="detailOrgTitle">--</h2>
+            <p id="detailManagerLine" class="hero-desc">--</p>
+            <div id="detailLinks" class="detail-links"></div>
+          </div>
+          <div id="detailQuickStats" class="detail-stats"></div>
+        </header>
+
+        <section class="panel panel-trend">
+          <div class="panel-head">
+            <h2>Holdings Net Asset Trend</h2>
+            <p>From the earliest filing onward, hover the line to inspect each quarter.</p>
+          </div>
+          <div id="aumTrendPanel" class="aum-trend-panel"></div>
+        </section>
+
+        <section class="panel panel-holdings">
+          <div class="panel-head">
+            <h2>Quarterly Holdings Overview</h2>
+            <p>Holdings table on the left, portfolio pie chart on the right, with full expansion support.</p>
+          </div>
+          <div id="holdingsCards" class="holdings-cards"></div>
+        </section>
+
+        <section class="panel panel-changes">
+          <div class="panel-head">
+            <h2>Quarter-over-Quarter Position Changes</h2>
+            <p>Ranked by buy/sell intensity with share-count change indicators.</p>
+          </div>
+          <div id="changesCards" class="changes-cards"></div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer-note">
+      Data source: SEC EDGAR Form 13F filings.
+    </footer>
+
+    <script src="./app.js?v=20260220-ui66"></script>
+  </body>
+</html>
