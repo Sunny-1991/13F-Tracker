@@ -1665,16 +1665,23 @@ function renderInteractivePie(segments, palette) {
       const rad = ((middleAngle - 90) * Math.PI) / 180;
       const dx = round(Math.cos(rad) * 10, 2);
       const dy = round(Math.sin(rad) * 10, 2);
-      const insidePos = polarToCartesian(cx, cy, radius * 0.64, middleAngle);
       const guideFrom = polarToCartesian(cx, cy, radius + 4, middleAngle);
       const guideTo = polarToCartesian(cx, cy, labelRadius, middleAngle);
       const anchor = Math.cos(rad) >= 0 ? "start" : "end";
       const hoverName = cleanCompanyName(item.company) || item.ticker || label;
-      const hoverWeight = formatPct(item.weight, 1, false);
+      const actualWeight = typeof item.rawWeight === "number" ? item.rawWeight : item.weight;
+      const hoverWeight = formatPct(actualWeight, 1, false);
       const labelX = guideTo.x + (anchor === "start" ? 8 : -8);
       const labelY = guideTo.y + 3;
       const code = (item.ticker || "").trim().toUpperCase();
-      const showInsideCode = code && item.weight >= 0.025;
+      const showInsideCode = code && actualWeight >= 0.02;
+      const insideRadiusFactor = actualWeight >= 0.05 ? 0.64 : actualWeight >= 0.03 ? 0.69 : 0.74;
+      const insidePos = polarToCartesian(cx, cy, radius * insideRadiusFactor, middleAngle);
+      const sizeByWeight = 9.2 + Math.sqrt(Math.max(actualWeight, 0)) * 20;
+      const sizeBySweep = 8.2 + sweep * 0.15;
+      const sizeByTickerLength = Math.max(0, code.length - 4) * 0.45;
+      const insideFontSize = clamp(Math.min(sizeByWeight, sizeBySweep) - sizeByTickerLength, 8.2, 18.5);
+      const insideStrokeWidth = clamp(1.5 + insideFontSize * 0.06, 1.7, 2.8);
       const path = buildPieSlicePath(cx, cy, radius, startAngle, endAngle);
       startAngle = endAngle;
 
@@ -1690,7 +1697,13 @@ function renderInteractivePie(segments, palette) {
           <text class="slice-hover-label-pct" x="${round(labelX, 2)}" y="${round(labelY + 14, 2)}" text-anchor="${anchor}">${hoverWeight}</text>
           ${
             showInsideCode
-              ? `<text class="slice-inside-label" x="${round(insidePos.x, 2)}" y="${round(insidePos.y + 3, 2)}" text-anchor="middle">${code}</text>`
+              ? `<text class="slice-inside-label" x="${round(insidePos.x, 2)}" y="${round(
+                  insidePos.y + insideFontSize * 0.28,
+                  2
+                )}" text-anchor="middle" style="font-size:${round(insideFontSize, 2)}px;stroke-width:${round(
+                  insideStrokeWidth,
+                  2
+                )}px;">${code}</text>`
               : ""
           }
         </g>
@@ -2484,6 +2497,7 @@ function renderHoldingsCards() {
         pieSegments.map((item) => ({
           ...item,
           weight: item.pieWeight,
+          rawWeight: item.weight,
         })),
         palette
       );
