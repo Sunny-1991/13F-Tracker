@@ -1899,27 +1899,33 @@ tr:last-child td {
 .footer-note {
   margin: 0.4rem auto 1.6rem;
   width: min(1360px, calc(100% - 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   color: #9eb0d8;
   font-size: 0.82rem;
 }
 
+.footer-source {
+  display: inline-block;
+}
+
 .snapshot-btn {
-  position: fixed;
-  right: 20px;
-  bottom: 22px;
-  z-index: 2600;
+  position: static;
   border: 1px solid rgba(170, 214, 255, 0.42);
   border-radius: 999px;
-  padding: 0.62rem 0.98rem;
+  padding: 0.48rem 0.9rem;
   background: linear-gradient(140deg, rgba(42, 93, 192, 0.94), rgba(39, 133, 205, 0.9));
   color: #f3fbff;
   font-family: "Noto Sans SC", "Manrope", sans-serif;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 12px 26px rgba(12, 24, 56, 0.32);
+  box-shadow: 0 8px 20px rgba(12, 24, 56, 0.28);
   transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  white-space: nowrap;
 }
 
 .snapshot-btn:hover {
@@ -1936,6 +1942,21 @@ tr:last-child td {
 body.snapshot-mode .snapshot-btn {
   opacity: 0;
   pointer-events: none;
+}
+
+body.snapshot-mode .detail-view .panel,
+body.snapshot-mode .holding-card,
+body.snapshot-mode .change-card {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+body.snapshot-mode .pie-segment,
+body.snapshot-mode .pie-segment path {
+  transition: none !important;
+  transform: none !important;
 }
 
 body.snapshot-mode .holding-card .pie-legend,
@@ -2142,9 +2163,12 @@ body.snapshot-mode .holding-card .table-actions {
   }
 
   .snapshot-btn {
-    right: 14px;
-    bottom: 14px;
-    padding: 0.55rem 0.86rem;
+    padding: 0.52rem 0.86rem;
     font-size: 0.8rem;
+  }
+
+  .footer-note {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }
