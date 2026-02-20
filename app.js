@@ -2756,8 +2756,6 @@ async function captureDetailSnapshot() {
     return;
   }
 
-  const investor = activeInvestor();
-  const prevExpanded = new Set(state.expanded);
   const prevScrollX = window.scrollX;
   const prevScrollY = window.scrollY;
 
@@ -2765,11 +2763,6 @@ async function captureDetailSnapshot() {
   btn.textContent = "Rendering...";
 
   try {
-    if (investor?.id) {
-      state.expanded.add(investor.id);
-    }
-    renderHoldingsCards();
-    renderChangesCards();
     document.body.classList.add("snapshot-mode");
     await waitDoubleFrame();
     await waitMs(260);
@@ -2810,9 +2803,6 @@ async function captureDetailSnapshot() {
     }, 1200);
   } finally {
     document.body.classList.remove("snapshot-mode");
-    state.expanded = prevExpanded;
-    renderHoldingsCards();
-    renderChangesCards();
     window.scrollTo(prevScrollX, prevScrollY);
     btn.disabled = false;
   }

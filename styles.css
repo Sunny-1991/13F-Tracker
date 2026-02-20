@@ -1959,23 +1959,6 @@ body.snapshot-mode .pie-segment path {
   transform: none !important;
 }
 
-body.snapshot-mode .holding-card .pie-legend,
-body.snapshot-mode .change-pro-list,
-body.snapshot-mode .filter-list {
-  max-height: none !important;
-  overflow: visible !important;
-}
-
-body.snapshot-mode .holding-card .table-wrap,
-body.snapshot-mode .change-group,
-body.snapshot-mode .pie-content {
-  overflow: visible !important;
-}
-
-body.snapshot-mode .holding-card .table-actions {
-  display: none !important;
-}
-
 @media (max-width: 980px) {
   .catalog-shell {
     border-radius: 24px;
