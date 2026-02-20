@@ -273,7 +273,310 @@ const CUSIP_TICKER_OVERRIDES = {
   "94845U105": "WBTN",
   "78468R556": "SPY",
   "84921RAB6": "SPOT",
+  "548661107": "LOW",
+  "902973304": "USB",
+  "46090E103": "QQQ",
+  "78463V107": "GLD",
+  "72766Q105": "PAH",
+  N31738102: "FCAU",
+  "339041105": "FLT",
+  "23331A109": "DHI",
+  "85207U105": "S",
+  "053015103": "ADP",
+  "46185L103": "NVTA",
+  "90184L102": "TWTR",
+  "741503403": "BKNG",
+  "13646K108": "CP",
+  "127686103": "CZR",
+  "31816QAB7": "FEYE",
+  "021346101": "AABA",
+  "04685W103": "ATHN",
+  "67020YAF7": "NUAN",
+  G81477104: "SINA",
+  "13645T100": "CP",
+  "913017109": "UTX",
+  "46612JAF8": "JDSU",
+  "28106W103": "EDIT",
+  "91911K102": "VRX",
+  G46188101: "HZNP",
+  G27358103: "DESP",
+  "90214J101": "TWOU",
+  G47567105: "INFO",
+  "464285105": "IAU",
+  "88032Q109": "TCEHY",
+  "00507V109": "ATVI",
+  "743713109": "PRLB",
+  "73935A104": "QQQ",
+  G11196105: "BHVN",
+  "96209A104": "WE",
+  "26886C107": "EQRX",
+  "983919101": "XLNX",
+  "017175100": "Y",
+  "48205A109": "JUNO",
+  N00985106: "AER",
+  "07373V105": "BEAM",
+  "067901108": "GOLD",
+  "16117M305": "CHTR",
+  "264411505": "DRE",
+  "848637104": "SPLK",
+  "156782104": "CERN",
+  "26916J106": "GWH",
+  "92556H206": "VIAB",
+  "92339V308": "VER",
+  "024835100": "ACC",
+  "09173T108": "GBTC",
+  "151020104": "CELG",
+  "500767306": "KWEB",
+  "96145D105": "WRK",
+  "52603B107": "TREE",
+  "67020Y100": "NUAN",
+  "63009R109": "NSTG",
+  "90184D100": "TWST",
+  "440894103": "HDP",
+  "58471A105": "MDSO",
+  "922042858": "VWO",
+  "690370101": "OSTK",
+  "37940XAU6": "GPN",
+  "12768T103": "CACQ",
+  "46123DAB2": "INVN",
+  "81763UAB6": "SREV",
+  "345370CZ1": "F",
+  "780153BB7": "RCL",
+  "779376AD4": "ROVI",
+  "M78465107": "PTNR",
+  G0698L103: "AURC",
 };
+
+const ISSUER_TICKER_OVERRIDES = {
+  "LOWES COS": "LOW",
+  "US BANCORP": "USB",
+  "INVESCO QQQ": "QQQ",
+  "SPDR GOLD TRUST": "GLD",
+  "FIAT CHRYSLER AUTOMOBILES": "FCAU",
+  "FLEETCOR TECHNOLOGIES": "FLT",
+  "D R HORTON": "DHI",
+  "SPRINT CORP": "S",
+  "SPRINT CORPORATION": "S",
+  "AUTOMATIC DATA PROCESSING": "ADP",
+  INVITAE: "NVTA",
+  TWITTER: "TWTR",
+  "PRICELINE GRP": "BKNG",
+  "BOOKING HOLDINGS": "BKNG",
+  "CAESARS ENTMT": "CZR",
+  FIREEYE: "FEYE",
+  ALTABA: "AABA",
+  ATHENAHEALTH: "ATHN",
+  "NUANCE COMMUNICATIONS": "NUAN",
+  "SINA CORP": "SINA",
+  "CANADIAN PAC RY": "CP",
+  "CANADIAN PACIFIC KANSAS CITY": "CP",
+  "UNITED TECHNOLOGIES": "UTX",
+  "JDS UNIPHASE": "JDSU",
+  "EDITAS MEDICINE": "EDIT",
+  "VALEANT PHARMACEUTICALS INTL": "VRX",
+  "HORIZON THERAPEUTICS": "HZNP",
+  DESPEGAR: "DESP",
+  "2U INC": "TWOU",
+  "IHS MARKIT": "INFO",
+  "ISHARES GOLD TRUST": "IAU",
+  "TENCENT HOLDINGS": "TCEHY",
+  "ACTIVISION BLIZZARD": "ATVI",
+  "PROTO LABS": "PRLB",
+  "BIOHAVEN PHARMACTL HLDG": "BHVN",
+  "WEWORK INC": "WE",
+  "EQRX INC": "EQRX",
+  "XILINX INC": "XLNX",
+  "ALLEGHANY CORP": "Y",
+  "JUNO THERAPEUTICS": "JUNO",
+  "AERCAP HOLDINGS": "AER",
+  "BEAM THERAPEUTICS": "BEAM",
+  "BARRICK GOLD": "GOLD",
+  "CHARTER COMMUNICATIONS": "CHTR",
+  "DUKE REALTY": "DRE",
+  "SPLUNK INC": "SPLK",
+  "CERNER CORP": "CERN",
+  "ESS TECH": "GWH",
+  "VIACOMCBS INC": "VIAB",
+  VEREIT: "VER",
+  "AMERICAN CAMPUS": "ACC",
+  "BITCOIN INVESTMENT TRUST": "GBTC",
+  "CELGENE CORP": "CELG",
+  KRANESHARES: "KWEB",
+  "WESTROCK CO": "WRK",
+  LENDINGTREE: "TREE",
+  "NANOSTRING TECHNOLOGIES": "NSTG",
+  "TWIST BIOSCIENCE": "TWST",
+  HORTONWORKS: "HDP",
+  "MEDIDATA SOLUTIONS": "MDSO",
+  "VANGUARD INTL EQUITY INDEX": "VWO",
+  "OVERSTOCK COM": "OSTK",
+  "GLOBAL PMTS": "GPN",
+  "CAESARS ACQUISITION": "CACQ",
+  INVENSENSE: "INVN",
+  SERVICESOURCE: "SREV",
+  "FORD MTR": "F",
+  "ROYAL CARIBBEAN GROUP": "RCL",
+  "ROVI CORP": "ROVI",
+  "PARTNER COMMUNICATIONS": "PTNR",
+  "AURORA ACQUISITION": "AURC",
+};
+
+const ISSUER_TICKER_STOPWORDS = new Set([
+  "INC",
+  "INCORPORATED",
+  "CORP",
+  "CORPORATION",
+  "COMPANY",
+  "CO",
+  "COS",
+  "HOLDINGS",
+  "HLDGS",
+  "LIMITED",
+  "LTD",
+  "PLC",
+  "LLC",
+  "LP",
+  "SA",
+  "NV",
+  "AG",
+  "NEW",
+  "THE",
+  "GROUP",
+  "HOLDING",
+  "TRUST",
+  "ETF",
+  "ETN",
+  "CL",
+  "CLASS",
+  "COM",
+  "ORD",
+  "SHS",
+  "ADR",
+  "SPONSORED",
+  "DE",
+  "DEL",
+  "A",
+  "B",
+  "C",
+  "N",
+  "TR",
+  "FUND",
+  "SERIES",
+]);
+
+const ISSUER_TICKER_TOKEN_REPLACEMENTS = {
+  INTL: "INTERNATIONAL",
+  MTRS: "MOTORS",
+  MATLS: "MATERIALS",
+  TECHS: "TECHNOLOGIES",
+  PPTY: "PROPERTY",
+  FINL: "FINANCIAL",
+  SYS: "SYSTEMS",
+  LABS: "LABORATORIES",
+  MGMT: "MANAGEMENT",
+  SVCS: "SERVICES",
+  ELEC: "ELECTRIC",
+  WKS: "WORKS",
+  CHEMS: "CHEMICALS",
+  PRODS: "PRODUCTS",
+  WHSL: "WHOLESALE",
+  CTLS: "CONTROLS",
+};
+
+function normalizeIssuerForTicker(value) {
+  const text = (value || "").toUpperCase().replace(/&/g, " AND ");
+  const compact = text
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[\/.,-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!compact) {
+    return "";
+  }
+  const tokens = compact
+    .split(" ")
+    .map((token) => ISSUER_TICKER_TOKEN_REPLACEMENTS[token] || token)
+    .filter((token) => token && !ISSUER_TICKER_STOPWORDS.has(token));
+  return tokens.join(" ").trim();
+}
+
+function bestTickerFromVotes(voteMap) {
+  const candidates = Array.from(voteMap.entries());
+  if (!candidates.length) {
+    return "";
+  }
+  candidates.sort((a, b) => {
+    if (b[1] !== a[1]) {
+      return b[1] - a[1];
+    }
+    if (a[0].length !== b[0].length) {
+      return a[0].length - b[0].length;
+    }
+    return a[0].localeCompare(b[0]);
+  });
+  return candidates[0][0];
+}
+
+function buildDerivedSecTickerMaps(managers) {
+  const votesByCode = new Map();
+  const votesByIssuer = new Map();
+
+  (managers || []).forEach((manager) => {
+    (manager.filings || []).forEach((filing) => {
+      (filing.holdings || []).forEach((item) => {
+        const code = (item.code || item.cusip || "").trim().toUpperCase();
+        const rawTicker = (item.ticker || "").trim().toUpperCase().replace(/\./g, "-");
+        const normalizedCode = code.replace(/\./g, "-");
+        const seededTicker = CUSIP_TICKER_OVERRIDES[code] || "";
+        const ticker = seededTicker
+          ? seededTicker
+          : looksLikeUsTicker(rawTicker)
+            ? rawTicker
+            : looksLikeUsTicker(normalizedCode)
+              ? normalizedCode
+              : "";
+        if (!ticker) {
+          return;
+        }
+
+        if (code) {
+          if (!votesByCode.has(code)) {
+            votesByCode.set(code, new Map());
+          }
+          const codeVotes = votesByCode.get(code);
+          codeVotes.set(ticker, (codeVotes.get(ticker) || 0) + 1);
+        }
+
+        const issuerKey = normalizeIssuerForTicker(item.issuer || "");
+        if (issuerKey) {
+          if (!votesByIssuer.has(issuerKey)) {
+            votesByIssuer.set(issuerKey, new Map());
+          }
+          const issuerVotes = votesByIssuer.get(issuerKey);
+          issuerVotes.set(ticker, (issuerVotes.get(ticker) || 0) + 1);
+        }
+      });
+    });
+  });
+
+  const byCode = new Map();
+  votesByCode.forEach((voteMap, code) => {
+    const best = bestTickerFromVotes(voteMap);
+    if (best) {
+      byCode.set(code, best);
+    }
+  });
+
+  const byIssuer = new Map();
+  votesByIssuer.forEach((voteMap, issuerKey) => {
+    const best = bestTickerFromVotes(voteMap);
+    if (best) {
+      byIssuer.set(issuerKey, best);
+    }
+  });
+
+  return { byCode, byIssuer };
+}
 
 function polarToCartesian(cx, cy, radius, angleDeg) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -801,6 +1104,8 @@ const state = {
   expanded: new Set(),
   view: "list",
   secHistoryById: new Map(),
+  derivedSecTickerByCode: new Map(),
+  derivedSecTickerByIssuer: new Map(),
   managerMetaById: new Map(),
   secHistoryLoaded: false,
 };
@@ -980,6 +1285,7 @@ function snapshotFromSecFiling(filing) {
     .map((item) => {
       const code = (item.code || item.cusip || item.issuer || "").trim();
       const normalizedCode = code.toUpperCase();
+      const normalizedIssuer = normalizeIssuerForTicker(item.issuer || "");
       const rawTicker = (item.ticker || "").trim().toUpperCase().replace(/\./g, "-");
       const codeAsTicker = code.toUpperCase().replace(/\./g, "-");
       const overrideTicker = CUSIP_TICKER_OVERRIDES[normalizedCode] || "";
@@ -989,7 +1295,10 @@ function snapshotFromSecFiling(filing) {
           ? rawTicker
           : looksLikeUsTicker(codeAsTicker)
             ? codeAsTicker
-            : "";
+            : state.derivedSecTickerByCode.get(normalizedCode) ||
+                ISSUER_TICKER_OVERRIDES[normalizedIssuer] ||
+                state.derivedSecTickerByIssuer.get(normalizedIssuer) ||
+                "";
       return {
         key: code || ticker || (item.issuer || "N/A"),
         code,
@@ -1444,7 +1753,10 @@ async function loadSecHistoryData() {
       managerMetaById.set(manager.id, manager);
       availableIds.add(manager.id);
     });
+    const derivedTickerMaps = buildDerivedSecTickerMaps(payload.managers || []);
     state.secHistoryById = historyById;
+    state.derivedSecTickerByCode = derivedTickerMaps.byCode;
+    state.derivedSecTickerByIssuer = derivedTickerMaps.byIssuer;
     state.managerMetaById = managerMetaById;
     state.secHistoryLoaded = true;
 
