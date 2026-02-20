@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260220-ui74" />
+    <link rel="stylesheet" href="./styles.css?v=20260220-ui75" />
   </head>
   <body>
     <div class="site-bg"></div>
@@ -78,6 +78,9 @@
       Data source: SEC EDGAR Form 13F filings.
     </footer>
 
-    <script src="./app.js?v=20260220-ui74"></script>
+    <button id="snapshotBtn" class="snapshot-btn" type="button" hidden>下载网页快照</button>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="./app.js?v=20260220-ui75"></script>
   </body>
 </html>

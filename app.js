@@ -1124,6 +1124,7 @@ const elements = {
   quarterSelect: document.querySelector("#quarterSelect"),
   holdingsCards: document.querySelector("#holdingsCards"),
   changesCards: document.querySelector("#changesCards"),
+  snapshotBtn: document.querySelector("#snapshotBtn"),
 };
 
 const STYLE_TAG_BY_ID = {
@@ -2230,6 +2231,9 @@ function showCatalogView() {
   if (elements.detailView) {
     elements.detailView.hidden = true;
   }
+  if (elements.snapshotBtn) {
+    elements.snapshotBtn.hidden = true;
+  }
 }
 
 function showDetailView() {
@@ -2239,6 +2243,9 @@ function showDetailView() {
   }
   if (elements.detailView) {
     elements.detailView.hidden = false;
+  }
+  if (elements.snapshotBtn) {
+    elements.snapshotBtn.hidden = false;
   }
 }
 
@@ -2712,8 +2719,110 @@ function renderAll() {
   renderChangesCards();
 }
 
+function snapshotFilename() {
+  const investor = activeInvestor();
+  const investorId = investor?.id || "institution";
+  const quarter = state.quarter || "quarter";
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(
+    now.getMinutes()
+  )}${pad(now.getSeconds())}`;
+  return `13f-${investorId}-${quarter}-snapshot-${stamp}.png`;
+}
+
+function waitDoubleFrame() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+async function captureDetailSnapshot() {
+  const btn = elements.snapshotBtn;
+  if (!btn || !elements.detailView || state.view !== "detail") {
+    return;
+  }
+  if (typeof window.html2canvas !== "function") {
+    btn.textContent = "截图组件加载失败";
+    setTimeout(() => {
+      btn.textContent = "下载网页快照";
+    }, 1200);
+    return;
+  }
+
+  const investor = activeInvestor();
+  const prevExpanded = new Set(state.expanded);
+  const prevScrollX = window.scrollX;
+  const prevScrollY = window.scrollY;
+
+  btn.disabled = true;
+  btn.textContent = "生成中...";
+
+  try {
+    if (investor?.id) {
+      state.expanded.add(investor.id);
+    }
+    renderHoldingsCards();
+    renderChangesCards();
+    document.body.classList.add("snapshot-mode");
+    await waitDoubleFrame();
+
+    const target = elements.detailView;
+    const width = Math.ceil(target.scrollWidth);
+    const height = Math.ceil(target.scrollHeight);
+    const canvas = await window.html2canvas(target, {
+      backgroundColor: "#0f1730",
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      scale: Math.min(2, window.devicePixelRatio || 1),
+      width,
+      height,
+      windowWidth: Math.max(width, document.documentElement.clientWidth),
+      windowHeight: Math.max(height, document.documentElement.clientHeight),
+      scrollX: 0,
+      scrollY: -window.scrollY,
+    });
+
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = snapshotFilename();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    btn.textContent = "已下载快照";
+    setTimeout(() => {
+      btn.textContent = "下载网页快照";
+    }, 1000);
+  } catch (error) {
+    console.error("snapshot capture failed", error);
+    btn.textContent = "下载失败，请重试";
+    setTimeout(() => {
+      btn.textContent = "下载网页快照";
+    }, 1200);
+  } finally {
+    document.body.classList.remove("snapshot-mode");
+    state.expanded = prevExpanded;
+    renderHoldingsCards();
+    renderChangesCards();
+    window.scrollTo(prevScrollX, prevScrollY);
+    btn.disabled = false;
+  }
+}
+
+function bindSnapshotAction() {
+  if (!elements.snapshotBtn) {
+    return;
+  }
+  elements.snapshotBtn.addEventListener("click", () => {
+    void captureDetailSnapshot();
+  });
+}
+
 bindControlActions();
 bindHoldingsCardActions();
+bindSnapshotAction();
 showCatalogView();
 renderAll();
 loadSecHistoryData();
