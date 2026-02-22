@@ -139,10 +139,34 @@ Optional enrichment pass (ticker/shares helper pipeline):
 python3 scripts/enrich_sec_13f_holdings.py
 ```
 
+## Automated Quarterly Updates
+
+This repository now includes a built-in GitHub Actions workflow:
+
+- Workflow file: `.github/workflows/auto-update-sec-13f.yml`
+- Trigger modes:
+  - Weekly baseline refresh
+  - Higher-frequency refresh during 13F due-month windows (Feb/May/Aug/Nov)
+  - Manual trigger via `workflow_dispatch`
+- Behavior:
+  - Runs history/latest/enrichment scripts
+  - Commits and pushes only when dataset files changed
+  - Push target: `main`
+
+Recommended setup:
+
+1. Go to repository `Settings -> Secrets and variables -> Actions`.
+2. Add secret `SEC_USER_AGENT` with a compliant SEC User-Agent string, for example:
+   - `13F-Tracker-AutoUpdate/1.0 (contact: your-email@example.com)`
+3. (Optional) Run the workflow manually once from the Actions tab to verify.
+
 ## Project Structure
 
 ```text
 guru-13f-monitor/
+  .github/
+    workflows/
+      auto-update-sec-13f.yml
   index.html
   app.js
   styles.css

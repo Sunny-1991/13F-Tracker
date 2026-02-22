@@ -139,10 +139,34 @@ python3 scripts/fetch_sec_13f_latest.py
 python3 scripts/enrich_sec_13f_holdings.py
 ```
 
+## 自动季度更新（GitHub Actions）
+
+仓库已内置自动更新工作流：
+
+- 工作流文件：`.github/workflows/auto-update-sec-13f.yml`
+- 触发方式：
+  - 每周常规刷新
+  - 13F 披露关键月份（2/5/8/11）窗口内更高频刷新
+  - Actions 页手动触发（`workflow_dispatch`）
+- 执行逻辑：
+  - 依次运行 history/latest/enrich 三个脚本
+  - 仅在数据文件有变化时自动提交并推送
+  - 推送目标分支：`main`
+
+建议配置：
+
+1. 打开仓库 `Settings -> Secrets and variables -> Actions`。
+2. 新增密钥 `SEC_USER_AGENT`，值建议为合规的 SEC User-Agent，例如：
+   - `13F-Tracker-AutoUpdate/1.0 (contact: your-email@example.com)`
+3. 可在 Actions 页面先手动运行一次，确认自动链路正常。
+
 ## 目录结构
 
 ```text
 guru-13f-monitor/
+  .github/
+    workflows/
+      auto-update-sec-13f.yml
   index.html
   app.js
   styles.css

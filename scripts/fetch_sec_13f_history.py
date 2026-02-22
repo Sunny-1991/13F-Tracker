@@ -19,7 +19,10 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 
-USER_AGENT = "guru13f-monitor/1.0 (contact: local-dev@example.com)"
+USER_AGENT = os.environ.get(
+    "SEC_USER_AGENT",
+    "13F-Tracker-AutoUpdate/1.0 (contact: maintainer@example.com)",
+)
 BASE_DIR = pathlib.Path(__file__).resolve().parents[1]
 OUTPUT_PATH = BASE_DIR / "data" / "sec-13f-history.json"
 

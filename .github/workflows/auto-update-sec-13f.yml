@@ -1,0 +1,67 @@
+name: Auto Update SEC 13F Data
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly baseline refresh (UTC)
+    - cron: "35 3 * * 1"
+    # Filing-season high-frequency window (UTC): around 13F due months
+    - cron: "50 3 14-20 2,5,8,11 *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-update-sec-13f
+  cancel-in-progress: false
+
+jobs:
+  refresh-sec-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Prepare SEC User-Agent
+        run: |
+          if [ -n "${{ secrets.SEC_USER_AGENT }}" ]; then
+            echo "SEC_USER_AGENT=${{ secrets.SEC_USER_AGENT }}" >> "$GITHUB_ENV"
+          else
+            echo "SEC_USER_AGENT=13F-Tracker-AutoUpdate/1.0 (contact: maintainer@example.com)" >> "$GITHUB_ENV"
+            echo "SEC_USER_AGENT secret is not set; using fallback User-Agent."
+          fi
+
+      - name: Refresh SEC datasets
+        run: |
+          python3 scripts/fetch_sec_13f_history.py
+          python3 scripts/fetch_sec_13f_latest.py
+          python3 scripts/enrich_sec_13f_holdings.py
+
+      - name: Commit dataset changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/sec-13f-history.json data/sec-13f-latest.json
+
+          if git diff --cached --quiet; then
+            echo "No dataset changes to commit."
+            echo "HAS_CHANGES=false" >> "$GITHUB_ENV"
+          else
+            stamp="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git commit -m "chore(data): auto-refresh SEC 13F datasets (${stamp})"
+            echo "HAS_CHANGES=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Push changes
+        if: env.HAS_CHANGES == 'true'
+        run: git push origin HEAD:main
