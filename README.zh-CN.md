@@ -98,7 +98,8 @@ Treemap 方块面积来自热度分数，构成权重如下：
 ## 本地启动
 
 ```bash
-cd "/Users/coattail/Documents/New project/guru-13f-monitor"
+git clone https://github.com/Sunny-1991/13F-Tracker.git
+cd 13F-Tracker
 ./start-site.sh 9012
 ```
 
@@ -117,25 +118,25 @@ cd "/Users/coattail/Documents/New project/guru-13f-monitor"
 在项目根目录执行：
 
 ```bash
-cd "/Users/coattail/Documents/New project/guru-13f-monitor"
+cd 13F-Tracker
 ```
 
 拉取完整历史：
 
 ```bash
-/usr/bin/python3 scripts/fetch_sec_13f_history.py
+python3 scripts/fetch_sec_13f_history.py
 ```
 
 拉取最新快照：
 
 ```bash
-/usr/bin/python3 scripts/fetch_sec_13f_latest.py
+python3 scripts/fetch_sec_13f_latest.py
 ```
 
 可选增强步骤（ticker / shares 辅助处理）：
 
 ```bash
-/usr/bin/python3 scripts/enrich_sec_13f_holdings.py
+python3 scripts/enrich_sec_13f_holdings.py
 ```
 
 ## 目录结构

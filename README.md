@@ -98,7 +98,8 @@ This substantially reduces artificial `other` spikes caused by raw SEC naming va
 ## Quick Start
 
 ```bash
-cd "/Users/coattail/Documents/New project/guru-13f-monitor"
+git clone https://github.com/Sunny-1991/13F-Tracker.git
+cd 13F-Tracker
 ./start-site.sh 9012
 ```
 
@@ -114,28 +115,28 @@ Use another port if needed:
 
 ## Data Refresh
 
-From project root:
+From the repository root:
 
 ```bash
-cd "/Users/coattail/Documents/New project/guru-13f-monitor"
+cd 13F-Tracker
 ```
 
 Fetch full historical filings:
 
 ```bash
-/usr/bin/python3 scripts/fetch_sec_13f_history.py
+python3 scripts/fetch_sec_13f_history.py
 ```
 
 Fetch latest snapshot payload:
 
 ```bash
-/usr/bin/python3 scripts/fetch_sec_13f_latest.py
+python3 scripts/fetch_sec_13f_latest.py
 ```
 
 Optional enrichment pass (ticker/shares helper pipeline):
 
 ```bash
-/usr/bin/python3 scripts/enrich_sec_13f_holdings.py
+python3 scripts/enrich_sec_13f_holdings.py
 ```
 
 ## Project Structure
