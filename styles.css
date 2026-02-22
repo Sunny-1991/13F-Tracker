@@ -119,7 +119,7 @@ body {
   justify-content: flex-end;
   align-items: center;
   gap: 0.6rem;
-  margin: -0.02rem 0.35rem 0.4rem;
+  margin: -0.14rem 0.35rem 0.58rem;
 }
 
 .catalog-meta {
@@ -140,6 +140,291 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9rem;
+}
+
+.catalog-treemap {
+  margin-top: 1rem;
+  border: 1px solid rgba(192, 210, 255, 0.24);
+  border-radius: 22px;
+  padding: 0.86rem 0.92rem 0.94rem;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(98, 151, 239, 0.24), transparent 50%),
+    radial-gradient(circle at 92% 10%, rgba(166, 115, 247, 0.22), transparent 46%),
+    linear-gradient(162deg, rgba(22, 35, 72, 0.88), rgba(18, 31, 62, 0.9));
+  box-shadow:
+    0 12px 24px rgba(13, 18, 40, 0.26),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.catalog-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.8rem;
+  margin: 0 0 0.56rem;
+}
+
+.catalog-panel-head h2 {
+  margin: 0;
+  font-size: 1.04rem;
+  color: #edf4ff;
+}
+
+.catalog-panel-head p {
+  margin: 0;
+  color: #b7c9ee;
+  font-size: 0.82rem;
+}
+
+.catalog-treemap-meta {
+  margin-bottom: 0.76rem;
+  min-height: 24px;
+}
+
+.treemap-hint-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  color: #afc2eb;
+  font-size: 0.78rem;
+}
+
+.treemap-hint-next {
+  flex-basis: 100%;
+  text-align: left;
+  font-weight: 700;
+}
+
+.treemap-focus-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem 0.56rem;
+}
+
+.treemap-focus-title {
+  color: #9fb5e8;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.treemap-focus-value {
+  color: #e6f0ff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.14rem 0.46rem;
+  border-radius: 999px;
+  border: 1px solid rgba(177, 201, 251, 0.28);
+  background: rgba(44, 63, 116, 0.6);
+}
+
+.treemap-clear-btn {
+  border: 1px solid rgba(173, 207, 255, 0.44);
+  border-radius: 999px;
+  padding: 0.22rem 0.62rem;
+  background: linear-gradient(145deg, rgba(56, 97, 171, 0.88), rgba(60, 87, 156, 0.9));
+  color: #edf6ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.treemap-clear-btn:hover {
+  background: linear-gradient(145deg, rgba(80, 133, 219, 0.92), rgba(109, 92, 216, 0.9));
+}
+
+.treemap-focus-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+  margin-top: 0.36rem;
+}
+
+.treemap-focus-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.16rem 0.48rem;
+  border: 1px solid rgba(176, 200, 250, 0.28);
+  background: rgba(34, 54, 102, 0.58);
+  color: #d6e6ff;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.catalog-treemap-canvas {
+  position: relative;
+  border: 1px solid rgba(178, 199, 252, 0.18);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 9% 10%, rgba(112, 154, 236, 0.2), transparent 44%),
+    radial-gradient(circle at 86% 86%, rgba(166, 112, 241, 0.16), transparent 42%),
+    rgba(18, 30, 63, 0.74);
+  min-height: 360px;
+  overflow: hidden;
+}
+
+.catalog-treemap-canvas svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.treemap-cell rect {
+  transition: filter 0.16s ease, transform 0.16s ease, stroke 0.16s ease, opacity 0.16s ease;
+}
+
+.treemap-cell {
+  cursor: pointer;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.16s ease;
+}
+
+.treemap-block {
+  stroke: rgba(193, 210, 255, 0.24);
+  stroke-width: 1;
+  filter: drop-shadow(0 2px 4px rgba(16, 21, 46, 0.26));
+}
+
+.treemap-metal-sheen {
+  opacity: 0.34;
+  pointer-events: none;
+}
+
+.treemap-rim {
+  fill: none;
+  stroke: rgba(234, 245, 255, 0.4);
+  stroke-width: 0.9;
+  pointer-events: none;
+}
+
+.treemap-cell:hover {
+  transform: translateY(-1px);
+}
+
+.treemap-cell:hover .treemap-block {
+  stroke: rgba(231, 239, 255, 0.62);
+  filter: drop-shadow(0 4px 8px rgba(15, 18, 40, 0.32));
+}
+
+.treemap-cell:hover .treemap-metal-sheen {
+  opacity: 0.46;
+}
+
+.treemap-cell.is-active .treemap-block {
+  stroke: rgba(246, 251, 255, 0.8);
+  stroke-width: 1.8;
+  filter: drop-shadow(0 6px 10px rgba(13, 16, 36, 0.38));
+}
+
+.treemap-cell.is-muted .treemap-block,
+.treemap-cell.is-muted .treemap-metal-sheen,
+.treemap-cell.is-muted .treemap-ticker,
+.treemap-cell.is-muted .treemap-name,
+.treemap-cell.is-muted .treemap-meta {
+  opacity: 0.36;
+}
+
+.treemap-ticker {
+  fill: rgba(249, 252, 255, 0.99);
+  font-family: "Manrope", "Noto Sans SC", sans-serif;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: rgba(18, 24, 50, 0.88);
+  stroke-width: 1.75px;
+  text-shadow: 0 1px 2px rgba(10, 18, 42, 0.48);
+}
+
+.treemap-name {
+  fill: rgba(236, 245, 255, 0.95);
+  font-family: "Manrope", "Noto Sans SC", sans-serif;
+  font-weight: 650;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.008em;
+  paint-order: stroke;
+  stroke: rgba(14, 22, 46, 0.66);
+  stroke-width: 1.05px;
+}
+
+.treemap-meta {
+  fill: rgba(232, 243, 255, 0.9);
+  font-family: "Manrope", "Noto Sans SC", sans-serif;
+  font-weight: 620;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.008em;
+  paint-order: stroke;
+  stroke: rgba(12, 20, 42, 0.58);
+  stroke-width: 0.88px;
+}
+
+.treemap-tooltip {
+  position: absolute;
+  z-index: 6;
+  min-width: 220px;
+  max-width: 300px;
+  border-radius: 12px;
+  border: 1px solid rgba(187, 210, 252, 0.28);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(96, 149, 237, 0.2), transparent 45%),
+    linear-gradient(160deg, rgba(28, 44, 86, 0.94), rgba(20, 33, 68, 0.95));
+  color: #eaf3ff;
+  box-shadow: 0 14px 28px rgba(9, 15, 34, 0.34);
+  padding: 0.56rem 0.62rem 0.6rem;
+  pointer-events: none;
+}
+
+.treemap-tooltip-title {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.treemap-tooltip-metric {
+  margin: 0.3rem 0 0;
+  color: #bed0f1;
+  font-size: 0.76rem;
+}
+
+.treemap-tooltip-metric strong {
+  color: #ebf5ff;
+}
+
+.treemap-tooltip-list {
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.treemap-tooltip-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.46rem;
+  color: #d1e3ff;
+  font-size: 0.74rem;
+}
+
+.treemap-tooltip-list li strong {
+  color: #edf5ff;
+}
+
+.treemap-empty {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: #b3c7ee;
+  font-size: 0.92rem;
+  padding: 1rem;
 }
 
 .institution-card {
@@ -163,6 +448,18 @@ body {
   box-shadow:
     0 14px 26px rgba(17, 20, 42, 0.3),
     0 0 0 1px rgba(241, 246, 255, 0.14) inset;
+}
+
+.institution-card.treemap-muted {
+  opacity: 0.42;
+  transform: scale(0.992);
+}
+
+.institution-card.treemap-hit {
+  border-color: rgba(222, 236, 255, 0.62);
+  box-shadow:
+    0 16px 30px rgba(12, 22, 48, 0.34),
+    0 0 0 1px rgba(237, 246, 255, 0.2) inset;
 }
 
 .institution-top {
@@ -471,6 +768,418 @@ body {
   font-size: 1rem;
   line-height: 1.32;
   letter-spacing: 0.01em;
+}
+
+.panel.panel-evolution {
+  padding: 0.94rem 1.16rem 1rem;
+}
+
+.evolution-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.78fr) minmax(320px, 1.1fr);
+  gap: 0.64rem;
+  align-items: start;
+}
+
+.evolution-main,
+.evolution-side {
+  border: 1px solid rgba(159, 191, 247, 0.23);
+  border-radius: 14px;
+  background: linear-gradient(165deg, rgba(37, 55, 103, 0.72), rgba(28, 42, 82, 0.78));
+  padding: 0.5rem 0.54rem 0.56rem;
+  align-self: start;
+}
+
+.evolution-subhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.38rem;
+}
+
+.evolution-subhead h3 {
+  margin: 0;
+  color: #ecf5ff;
+  font-size: 0.94rem;
+  letter-spacing: 0.01em;
+}
+
+.evolution-subhead p {
+  margin: 0;
+  color: #b9cff0;
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.evolution-main .aum-trend-shell {
+  grid-template-columns: 1fr;
+  gap: 0.54rem;
+}
+
+.evolution-main .aum-trend-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-column: 1;
+  grid-row: 1;
+  gap: 0.54rem;
+}
+
+.evolution-main .trend-metric {
+  min-height: 94px;
+  padding: 0.56rem 0.62rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.evolution-main .trend-metric span {
+  font-size: 0.78rem;
+}
+
+.evolution-main .trend-metric strong {
+  margin-top: 0.12rem;
+  font-size: 1.14rem;
+}
+
+.evolution-main .trend-metric em {
+  margin-top: 0.08rem;
+  font-size: 0.74rem;
+}
+
+.evolution-main .mountain-wrap {
+  grid-column: 1;
+  grid-row: 2;
+  padding: 0.46rem 0.5rem 0.34rem;
+  min-height: 418px;
+}
+
+.evolution-main .trend-insights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.42rem;
+  margin-top: 0.46rem;
+}
+
+.trend-insight {
+  border: 1px solid rgba(171, 194, 242, 0.24);
+  border-radius: 11px;
+  background: rgba(39, 56, 101, 0.82);
+  padding: 0.38rem 0.44rem;
+  min-height: 72px;
+}
+
+.trend-insight span {
+  display: block;
+  color: #b7ccec;
+  font-size: 0.71rem;
+}
+
+.trend-insight strong {
+  display: block;
+  margin-top: 0.08rem;
+  color: #ebf4ff;
+  font-size: 0.94rem;
+  line-height: 1.24;
+}
+
+.trend-insight em {
+  display: block;
+  margin-top: 0.06rem;
+  color: #b7caea;
+  font-style: normal;
+  font-size: 0.67rem;
+  line-height: 1.32;
+}
+
+.trend-insight.up strong {
+  color: #88e7bf;
+}
+
+.trend-insight.down strong {
+  color: #ffb8c0;
+}
+
+.evolution-side .style-radar-shell {
+  grid-template-columns: 1fr;
+  gap: 0.44rem;
+}
+
+.evolution-side .style-radar-figure {
+  padding: 0.32rem 0.36rem 0.36rem;
+  min-height: 320px;
+}
+
+.evolution-side .style-summary-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.evolution-side .style-summary-card {
+  padding: 0.38rem 0.4rem;
+}
+
+.evolution-side .style-breakdown {
+  padding: 0.3rem 0.34rem;
+}
+
+.panel.panel-style-radar {
+  padding: 0.92rem 1.16rem 0.98rem;
+}
+
+.style-radar-panel {
+  display: block;
+}
+
+.style-radar-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.52fr) minmax(236px, 0.92fr);
+  gap: 0.62rem;
+  align-items: stretch;
+}
+
+.style-radar-figure {
+  border: 1px solid rgba(193, 177, 252, 0.26);
+  border-radius: 14px;
+  padding: 0.38rem 0.44rem 0.44rem;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(123, 161, 248, 0.22), transparent 44%),
+    radial-gradient(circle at 90% 12%, rgba(176, 132, 246, 0.2), transparent 42%),
+    linear-gradient(165deg, rgba(43, 38, 84, 0.9), rgba(27, 37, 72, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(235, 244, 255, 0.04);
+}
+
+.style-radar-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.style-radar-ring {
+  fill: none;
+  stroke: rgba(169, 192, 236, 0.26);
+  stroke-width: 1.1;
+}
+
+.style-radar-axis-line {
+  stroke: rgba(160, 184, 230, 0.24);
+  stroke-width: 1;
+}
+
+.style-radar-axis-label {
+  fill: #d5e6ff;
+  font-size: 11.6px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.style-radar-ring-label {
+  fill: rgba(184, 204, 238, 0.76);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.style-radar-area {
+  stroke-width: 2.3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.style-radar-area.primary {
+  filter: drop-shadow(0 5px 10px rgba(130, 80, 48, 0.34));
+}
+
+.style-radar-area.peer {
+  stroke-dasharray: 5 4;
+}
+
+.style-radar-node {
+  stroke-width: 1.2;
+}
+
+.style-radar-node.primary {
+  fill: #f6f8ff;
+  stroke: rgba(201, 126, 75, 0.95);
+}
+
+.style-radar-node.peer {
+  fill: rgba(203, 255, 248, 0.94);
+  stroke: rgba(81, 191, 182, 0.92);
+}
+
+.style-radar-center {
+  fill: #f7fbff;
+  stroke: rgba(130, 150, 205, 0.82);
+  stroke-width: 1.2;
+}
+
+.style-radar-legend {
+  margin-top: 0.15rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem 0.62rem;
+  color: #c6daf6;
+  font-size: 0.69rem;
+  font-weight: 700;
+}
+
+.style-radar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.style-line {
+  width: 1.16rem;
+  height: 0;
+  border-top-width: 2.4px;
+  border-top-style: solid;
+  display: inline-block;
+  border-radius: 999px;
+  transform: translateY(1px);
+}
+
+.style-line.primary {
+  border-top-color: rgb(201, 126, 75);
+  box-shadow: 0 0 0 1px rgba(201, 126, 75, 0.2);
+}
+
+.style-line.peer {
+  border-top-color: rgb(121, 219, 210);
+  border-top-style: dashed;
+  border-top-width: 2.3px;
+}
+
+.style-radar-scale-note {
+  margin: 0.16rem 0 0.02rem;
+  color: #aec6ec;
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
+.style-radar-side {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0.44rem;
+}
+
+.style-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.38rem;
+}
+
+.style-summary-card {
+  border: 1px solid rgba(181, 200, 248, 0.28);
+  border-radius: 12px;
+  background: rgba(42, 58, 102, 0.84);
+  padding: 0.44rem 0.48rem;
+  text-align: center;
+}
+
+.style-summary-card span {
+  display: block;
+  color: #b8caeb;
+  font-size: 0.71rem;
+}
+
+.style-summary-card strong {
+  display: block;
+  margin-top: 0.1rem;
+  color: #eff6ff;
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.style-summary-card em {
+  display: block;
+  margin-top: 0.08rem;
+  color: #bcd1ef;
+  font-style: normal;
+  font-size: 0.69rem;
+}
+
+.style-breakdown {
+  border: 1px solid rgba(176, 195, 241, 0.26);
+  border-radius: 12px;
+  background: rgba(36, 50, 92, 0.78);
+  padding: 0.34rem 0.4rem;
+}
+
+.style-breakdown-head,
+.style-breakdown-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(62px, 0.58fr) minmax(0, 1fr);
+  gap: 0.22rem;
+  align-items: center;
+}
+
+.style-breakdown-head {
+  color: #c8dbf8;
+  font-size: 0.69rem;
+  font-weight: 700;
+  padding: 0.06rem 0.14rem 0.24rem;
+  border-bottom: 1px solid rgba(177, 202, 248, 0.16);
+  margin-bottom: 0.14rem;
+}
+
+.style-breakdown-head span:nth-child(2),
+.style-breakdown-row span:nth-child(2) {
+  text-align: center;
+  justify-self: center;
+}
+
+.style-breakdown-head span:nth-child(3),
+.style-breakdown-row span:nth-child(3) {
+  text-align: center;
+  justify-self: center;
+  margin-left: 6px;
+}
+
+.style-breakdown-head span:first-child,
+.style-breakdown-row span:first-child {
+  text-align: left;
+  justify-self: start;
+}
+
+.style-breakdown-row {
+  font-size: 0.74rem;
+  color: #deecff;
+  padding: 0.2rem 0.14rem;
+  border-radius: 8px;
+}
+
+.style-breakdown-row:nth-child(even) {
+  background: rgba(48, 67, 115, 0.28);
+}
+
+.style-breakdown-name {
+  color: #e8f2ff;
+  font-weight: 600;
+  line-height: 1.24;
+}
+
+.style-breakdown-value {
+  text-align: center;
+  color: #e0f0ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.style-breakdown-delta {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.style-breakdown-delta.up {
+  color: #8ff0c4;
+}
+
+.style-breakdown-delta.down {
+  color: #ffb4bd;
+}
+
+.style-breakdown-delta.flat {
+  color: #bdd0f2;
 }
 
 .panel.panel-trend {
@@ -1123,7 +1832,7 @@ select {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.82rem;
-  align-items: stretch;
+  align-items: start;
 }
 
 .holding-table-wrap table {
@@ -1209,7 +1918,7 @@ select {
   background: rgba(24, 37, 70, 0.76);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .detail-view .holding-pie {
@@ -1960,6 +2669,18 @@ body.snapshot-mode .pie-segment path {
 }
 
 @media (max-width: 980px) {
+  .evolution-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .evolution-main .mountain-wrap {
+    min-height: 332px;
+  }
+
+  .evolution-main .trend-insights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .catalog-shell {
     border-radius: 24px;
     padding: 0.9rem;
@@ -1973,6 +2694,24 @@ body.snapshot-mode .pie-segment path {
 
   .institution-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .catalog-panel-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+
+  .treemap-focus-row {
+    gap: 0.34rem 0.42rem;
+  }
+
+  .treemap-focus-value {
+    font-size: 0.76rem;
+  }
+
+  .catalog-treemap-canvas {
+    min-height: 300px;
   }
 
   .detail-top-row {
@@ -1998,6 +2737,18 @@ body.snapshot-mode .pie-segment path {
     grid-template-columns: 1fr;
   }
 
+  .style-radar-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .style-radar-side {
+    grid-template-rows: auto auto;
+  }
+
+  .style-summary-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .aum-trend-shell {
     grid-template-columns: 1fr;
   }
@@ -2019,6 +2770,30 @@ body.snapshot-mode .pie-segment path {
 }
 
 @media (max-width: 680px) {
+  .evolution-subhead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.16rem;
+  }
+
+  .evolution-main .aum-trend-summary {
+    grid-template-columns: 1fr;
+    gap: 0.34rem;
+  }
+
+  .evolution-main .mountain-wrap {
+    min-height: 248px;
+  }
+
+  .evolution-main .trend-insights {
+    grid-template-columns: 1fr;
+    gap: 0.34rem;
+  }
+
+  .evolution-side .style-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
   .layout {
     width: min(1260px, calc(100% - 1rem));
     margin-top: 0.7rem;
@@ -2049,6 +2824,58 @@ body.snapshot-mode .pie-segment path {
     gap: 0.58rem;
   }
 
+  .catalog-treemap {
+    margin-top: 0.74rem;
+    border-radius: 14px;
+    padding: 0.68rem 0.62rem 0.7rem;
+  }
+
+  .catalog-panel-head h2 {
+    font-size: 0.96rem;
+  }
+
+  .catalog-panel-head p {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .catalog-treemap-meta {
+    margin-bottom: 0.62rem;
+  }
+
+  .treemap-hint-row {
+    flex-direction: column;
+    gap: 0.18rem;
+  }
+
+  .treemap-focus-row {
+    gap: 0.28rem 0.36rem;
+  }
+
+  .treemap-focus-title {
+    width: 100%;
+  }
+
+  .treemap-focus-value {
+    font-size: 0.74rem;
+    padding: 0.14rem 0.42rem;
+  }
+
+  .treemap-clear-btn {
+    padding: 0.2rem 0.54rem;
+    font-size: 0.73rem;
+  }
+
+  .treemap-focus-chip {
+    font-size: 0.71rem;
+    padding: 0.14rem 0.4rem;
+  }
+
+  .catalog-treemap-canvas {
+    min-height: 250px;
+    border-radius: 11px;
+  }
+
   .institution-main {
     min-height: 74px;
   }
@@ -2074,6 +2901,24 @@ body.snapshot-mode .pie-segment path {
 
   .detail-stats {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .style-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .style-breakdown-head,
+  .style-breakdown-row {
+    grid-template-columns: minmax(0, 1fr) minmax(56px, 0.58fr) minmax(0, 1fr);
+    gap: 0.24rem;
+  }
+
+  .style-radar-axis-label {
+    font-size: 11.5px;
+  }
+
+  .style-radar-ring-label {
+    font-size: 9.8px;
   }
 
   .aum-trend-summary {

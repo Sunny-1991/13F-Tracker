@@ -39,6 +39,36 @@ function round(value, digits = 2) {
   return Math.round(value * m) / m;
 }
 
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function truncateLabel(text, maxLength) {
+  const value = String(text || "").trim();
+  if (!value || value.length <= maxLength) {
+    return value;
+  }
+  if (maxLength <= 1) {
+    return value.slice(0, 1);
+  }
+  return `${value.slice(0, maxLength - 1)}…`;
+}
+
+function fitTextSize(text, maxWidth, minSize, maxSize, charFactor = 0.56) {
+  const safe = String(text || "").trim();
+  if (!safe) {
+    return minSize;
+  }
+  const length = Math.max(1, safe.length);
+  const widthBound = maxWidth / (length * charFactor);
+  return clamp(widthBound, minSize, maxSize);
+}
+
 function formatB(value) {
   const digits = value >= 100 ? 1 : value >= 10 ? 2 : 3;
   return `${round(value, digits).toLocaleString()}`;
@@ -50,6 +80,16 @@ function formatPct(value, digits = 1, signed = false) {
   }
   const sign = signed && value > 0 ? "+" : "";
   return `${sign}${round(value * 100, digits)}%`;
+}
+
+function standardDeviation(values) {
+  const nums = (values || []).filter((value) => Number.isFinite(value));
+  if (!nums.length) {
+    return 0;
+  }
+  const mean = nums.reduce((acc, value) => acc + value, 0) / nums.length;
+  const variance = nums.reduce((acc, value) => acc + (value - mean) ** 2, 0) / nums.length;
+  return Math.sqrt(variance);
 }
 
 function getValuationUnit(totalInBillion) {
@@ -1103,23 +1143,31 @@ const state = {
   quarter: LATEST_QUARTER,
   expanded: new Set(),
   view: "list",
+  catalogTreemapItemsByKey: new Map(),
+  catalogTreemapCoveredInstitutions: 0,
+  catalogTreemapFocusKey: "",
+  catalogTreemapFocusInstitutionIds: new Set(),
   secHistoryById: new Map(),
   derivedSecTickerByCode: new Map(),
   derivedSecTickerByIssuer: new Map(),
   managerMetaById: new Map(),
   secHistoryLoaded: false,
+  styleRadarScaleCap: 0.36,
 };
 
 const elements = {
   listView: document.querySelector("#listView"),
   detailView: document.querySelector("#detailView"),
   institutionGrid: document.querySelector("#institutionGrid"),
+  institutionTreemapMeta: document.querySelector("#institutionTreemapMeta"),
+  institutionTreemap: document.querySelector("#institutionTreemap"),
   catalogMeta: document.querySelector("#catalogMeta"),
   backToListBtn: document.querySelector("#backToListBtn"),
   detailOrgTitle: document.querySelector("#detailOrgTitle"),
   detailManagerLine: document.querySelector("#detailManagerLine"),
   detailLinks: document.querySelector("#detailLinks"),
   detailQuickStats: document.querySelector("#detailQuickStats"),
+  styleRadarPanel: document.querySelector("#styleRadarPanel"),
   aumTrendPanel: document.querySelector("#aumTrendPanel"),
   quarterSelect: document.querySelector("#quarterSelect"),
   holdingsCards: document.querySelector("#holdingsCards"),
@@ -1149,6 +1197,217 @@ const OFFICIAL_WEBSITE_BY_ID = {
   himalaya: "https://www.himcap.com/",
   tigerglobal: "https://www.tigerglobal.com/",
 };
+
+const STYLE_RADAR_AXES = [
+  { key: "technology", label: "Technology" },
+  { key: "financials", label: "Financials" },
+  { key: "consumer", label: "Consumer" },
+  { key: "healthcare", label: "Healthcare" },
+  { key: "industrials", label: "Industrials" },
+  { key: "energy", label: "Energy & Utilities" },
+  { key: "other", label: "Other" },
+];
+
+const STYLE_BUCKET_BY_TICKER = {
+  AAPL: "technology",
+  MSFT: "technology",
+  NVDA: "technology",
+  GOOGL: "technology",
+  GOOG: "technology",
+  META: "technology",
+  ADBE: "technology",
+  AVGO: "technology",
+  LRCX: "technology",
+  TSM: "technology",
+  QCOM: "technology",
+  SMCI: "technology",
+  PLTR: "technology",
+  ARM: "technology",
+  CRWD: "technology",
+  APP: "technology",
+  U: "technology",
+  ZM: "technology",
+  PATH: "technology",
+
+  BAC: "financials",
+  AXP: "financials",
+  COIN: "financials",
+  MCO: "financials",
+  XLF: "financials",
+  BN: "financials",
+  BRKB: "financials",
+  "BRK-B": "financials",
+  EWBC: "financials",
+  APO: "financials",
+  HOOD: "financials",
+  USB: "financials",
+  GS: "financials",
+  JPM: "financials",
+
+  AMZN: "consumer",
+  TSLA: "consumer",
+  KO: "consumer",
+  KHC: "consumer",
+  BABA: "consumer",
+  JD: "consumer",
+  PDD: "consumer",
+  BIDU: "consumer",
+  NTES: "consumer",
+  NFLX: "consumer",
+  ROKU: "consumer",
+  DASH: "consumer",
+  UBER: "consumer",
+  QSR: "consumer",
+  HLT: "consumer",
+  HTZ: "consumer",
+  CROX: "consumer",
+  SE: "consumer",
+  TTWO: "consumer",
+  BKNG: "consumer",
+  SIRI: "consumer",
+  SHOP: "consumer",
+  RDDT: "consumer",
+  TMUS: "consumer",
+  DTEGY: "consumer",
+  SEG: "consumer",
+
+  DVA: "healthcare",
+  CRSP: "healthcare",
+  NTLA: "healthcare",
+
+  GEV: "industrials",
+  HHH: "industrials",
+  TER: "industrials",
+
+  CVX: "energy",
+  OXY: "energy",
+  XOM: "energy",
+};
+
+const STYLE_BUCKET_KEYWORDS = [
+  {
+    bucket: "financials",
+    terms: [
+      "BANK",
+      "BANCORP",
+      "FINANCIAL",
+      "CAPITAL",
+      "INSURANCE",
+      "PAYMENT",
+      "CREDIT",
+      "ASSET MGMT",
+      "INVESTMENT",
+      "BROKER",
+      "TRUST",
+      "ETF",
+      "FUND",
+    ],
+  },
+  {
+    bucket: "healthcare",
+    terms: [
+      "HEALTH",
+      "PHARMA",
+      "THERAPEUT",
+      "BIOTECH",
+      "BIO ",
+      "MEDICAL",
+      "LIFE SCI",
+      "DIAGNOST",
+      "HOSPITAL",
+      "DRUG",
+    ],
+  },
+  {
+    bucket: "energy",
+    terms: [
+      "ENERGY",
+      "OIL",
+      "PETROLE",
+      "NATURAL GAS",
+      "UTILITY",
+      "UTILITIES",
+      "POWER",
+      "SOLAR",
+      "RENEWABLE",
+      "PIPELINE",
+    ],
+  },
+  {
+    bucket: "industrials",
+    terms: [
+      "INDUSTRIAL",
+      "AEROSPACE",
+      "DEFENSE",
+      "MACHIN",
+      "RAIL",
+      "LOGISTICS",
+      "TRANSPORT",
+      "CONSTRUCT",
+      "ENGINEERING",
+      "INFRASTRUCT",
+      "AIRLINES",
+      "SHIPPING",
+    ],
+  },
+  {
+    bucket: "technology",
+    terms: [
+      "TECHNOLOGY",
+      "SOFTWARE",
+      "SEMICON",
+      "MICRO",
+      "CYBER",
+      "CLOUD",
+      "DATA",
+      "INTERNET",
+      "DIGITAL",
+      "ELECTRON",
+      "COMPUT",
+      "AI ",
+      "ARTIFICIAL INTELLIGENCE",
+      "PLATFORM",
+    ],
+  },
+  {
+    bucket: "consumer",
+    terms: [
+      "CONSUMER",
+      "RETAIL",
+      "E COMMERCE",
+      "E-COMMERCE",
+      "APPAREL",
+      "FOOD",
+      "BEVERAGE",
+      "RESTAURANT",
+      "HOTEL",
+      "TRAVEL",
+      "AUTO",
+      "AUTOMOT",
+      "ENTERTAIN",
+      "MEDIA",
+      "STREAM",
+      "LEISURE",
+    ],
+  },
+];
+
+const SP500_STYLE_PROFILE = Object.freeze({
+  technology: 0.31,
+  financials: 0.14,
+  consumer: 0.16,
+  healthcare: 0.11,
+  industrials: 0.09,
+  energy: 0.07,
+  other: 0.12,
+});
+
+const STYLE_RADAR_GLOBAL_GAMMA = 0.62;
+const STYLE_RADAR_FALLBACK_CAP = 0.36;
+const STYLE_RADAR_PRIMARY_STROKE = "rgb(201, 126, 75)";
+const STYLE_RADAR_PRIMARY_FILL = "rgba(201, 126, 75, 0.24)";
+const STYLE_RADAR_BENCHMARK_STROKE = "rgb(121, 219, 210)";
+const STYLE_RADAR_BENCHMARK_FILL = "rgba(121, 219, 210, 0.15)";
 
 const AVATAR_CACHE_VERSION = "20260220-ui29";
 
@@ -1773,6 +2032,7 @@ async function loadSecHistoryData() {
     state.derivedSecTickerByIssuer = derivedTickerMaps.byIssuer;
     state.managerMetaById = managerMetaById;
     state.secHistoryLoaded = true;
+    state.styleRadarScaleCap = computeGlobalStyleRadarScaleCap();
 
     if (!availableIds.has(state.activeInvestorId)) {
       if (availableIds.has("buffett")) {
@@ -1848,6 +2108,399 @@ function buildSvgPath(points) {
     return "";
   }
   return points.map((point, idx) => `${idx === 0 ? "M" : "L"} ${round(point.x, 2)} ${round(point.y, 2)}`).join(" ");
+}
+
+function createStyleBucketTotals() {
+  const totals = {};
+  STYLE_RADAR_AXES.forEach((axis) => {
+    totals[axis.key] = 0;
+  });
+  return totals;
+}
+
+function normalizeTickerForStyle(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\./g, "-");
+}
+
+function classifyHoldingStyleBucket(item) {
+  const ticker = normalizeTickerForStyle(item?.ticker || "");
+  const tickerCompact = ticker.replace(/-/g, "");
+  if (ticker && STYLE_BUCKET_BY_TICKER[ticker]) {
+    return STYLE_BUCKET_BY_TICKER[ticker];
+  }
+  if (tickerCompact && STYLE_BUCKET_BY_TICKER[tickerCompact]) {
+    return STYLE_BUCKET_BY_TICKER[tickerCompact];
+  }
+
+  const keyTicker = normalizeTickerForStyle(item?.key || "");
+  const keyCompact = keyTicker.replace(/-/g, "");
+  if (keyTicker && STYLE_BUCKET_BY_TICKER[keyTicker]) {
+    return STYLE_BUCKET_BY_TICKER[keyTicker];
+  }
+  if (keyCompact && STYLE_BUCKET_BY_TICKER[keyCompact]) {
+    return STYLE_BUCKET_BY_TICKER[keyCompact];
+  }
+
+  const normalizedText = ` ${String(`${item?.company || ""} ${item?.securityClass || ""}`)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim()} `;
+
+  if (normalizedText.trim()) {
+    const isIndexLike =
+      /( ETF | INDEX | TRUST | FUND )/.test(normalizedText) &&
+      /( SPDR | ISHARES | VANGUARD | INVESCO | CORE S P | TOTAL MARKET | INDEX )/.test(normalizedText);
+    if (isIndexLike) {
+      if (normalizedText.includes(" FINANCIAL ")) {
+        return "financials";
+      }
+      if (normalizedText.includes(" ENERGY ") || normalizedText.includes(" UTILIT")) {
+        return "energy";
+      }
+      if (normalizedText.includes(" TECHNOLOGY ")) {
+        return "technology";
+      }
+      if (normalizedText.includes(" HEALTHCARE ")) {
+        return "healthcare";
+      }
+      return "other";
+    }
+
+    for (const rule of STYLE_BUCKET_KEYWORDS) {
+      if (rule.terms.some((term) => normalizedText.includes(` ${term} `) || normalizedText.includes(term))) {
+        return rule.bucket;
+      }
+    }
+  }
+
+  return "other";
+}
+
+function buildStyleProfileFromSnapshot(snapshot) {
+  const totals = createStyleBucketTotals();
+  if (!snapshot || !Array.isArray(snapshot.holdings)) {
+    return totals;
+  }
+
+  let usedWeight = 0;
+  snapshot.holdings.forEach((item) => {
+    if (!item || item.key === "OTHER") {
+      return;
+    }
+    const weight = Number(item.weight) || 0;
+    if (weight <= 0) {
+      return;
+    }
+    const bucket = classifyHoldingStyleBucket(item);
+    totals[bucket] = (totals[bucket] || 0) + weight;
+    usedWeight += weight;
+  });
+
+  if (usedWeight <= 0) {
+    return totals;
+  }
+
+  STYLE_RADAR_AXES.forEach((axis) => {
+    totals[axis.key] = totals[axis.key] / usedWeight;
+  });
+  return totals;
+}
+
+function getQuarterAverageStyleProfile(quarter) {
+  const sum = createStyleBucketTotals();
+  let covered = 0;
+
+  INVESTORS.forEach((inv) => {
+    const snapshot = getDisplaySnapshot(inv, quarter);
+    if (!snapshot) {
+      return;
+    }
+    const profile = buildStyleProfileFromSnapshot(snapshot);
+    const coverage = STYLE_RADAR_AXES.reduce((acc, axis) => acc + (profile[axis.key] || 0), 0);
+    if (coverage <= 0) {
+      return;
+    }
+    covered += 1;
+    STYLE_RADAR_AXES.forEach((axis) => {
+      sum[axis.key] += profile[axis.key] || 0;
+    });
+  });
+
+  if (covered > 0) {
+    STYLE_RADAR_AXES.forEach((axis) => {
+      sum[axis.key] /= covered;
+    });
+  }
+
+  return { profile: sum, covered };
+}
+
+function getSp500StyleProfile() {
+  return { ...SP500_STYLE_PROFILE };
+}
+
+function createStyleRadarScale(primaryProfile, benchmarkProfile, gamma = STYLE_RADAR_GLOBAL_GAMMA, fixedCap = null) {
+  const values = [];
+  [primaryProfile, benchmarkProfile].forEach((profile) => {
+    if (!profile) {
+      return;
+    }
+    STYLE_RADAR_AXES.forEach((axis) => {
+      const value = Number(profile[axis.key]) || 0;
+      if (value > 0) {
+        values.push(value);
+      }
+    });
+  });
+  const dynamicCap = values.length ? Math.max(...values) : STYLE_RADAR_FALLBACK_CAP;
+  const cap = fixedCap && Number.isFinite(fixedCap) ? fixedCap : dynamicCap;
+  const safeCap = cap > 0 ? cap : STYLE_RADAR_FALLBACK_CAP;
+  const safeGamma = clamp(gamma, 0.45, 1);
+  return {
+    cap: safeCap,
+    gamma: safeGamma,
+    toScaled: (value) => Math.pow(clamp((Number(value) || 0) / safeCap, 0, 1), safeGamma),
+    toRaw: (scaledValue) => safeCap * Math.pow(clamp(Number(scaledValue) || 0, 0, 1), 1 / safeGamma),
+  };
+}
+
+function computeGlobalStyleRadarScaleCap() {
+  let maxWeight = STYLE_RADAR_FALLBACK_CAP;
+  const sp500 = getSp500StyleProfile();
+  STYLE_RADAR_AXES.forEach((axis) => {
+    maxWeight = Math.max(maxWeight, Number(sp500[axis.key]) || 0);
+  });
+
+  INVESTORS.forEach((inv) => {
+    const quarters = getAvailableQuartersForInvestor(inv);
+    quarters.forEach((quarter) => {
+      const snapshot = getDisplaySnapshot(inv, quarter);
+      if (!snapshot) {
+        return;
+      }
+      const profile = buildStyleProfileFromSnapshot(snapshot);
+      STYLE_RADAR_AXES.forEach((axis) => {
+        maxWeight = Math.max(maxWeight, Number(profile[axis.key]) || 0);
+      });
+    });
+  });
+
+  return round(clamp(maxWeight, 0.2, 0.8), 4);
+}
+
+function buildClosedPath(points) {
+  if (!points.length) {
+    return "";
+  }
+  return `${points
+    .map((point, idx) => `${idx === 0 ? "M" : "L"} ${round(point.x, 2)} ${round(point.y, 2)}`)
+    .join(" ")} Z`;
+}
+
+function buildStyleRadarSeriesPoints(profile, cx, cy, radius, scaleFn = (value) => value) {
+  const count = STYLE_RADAR_AXES.length;
+  const step = 360 / count;
+  return STYLE_RADAR_AXES.map((axis, idx) => {
+    const angle = -90 + idx * step;
+    const rawValue = clamp(profile[axis.key] || 0, 0, 1);
+    const value = clamp(scaleFn(rawValue), 0, 1);
+    const point = polarToCartesian(cx, cy, radius * value, angle);
+    const outer = polarToCartesian(cx, cy, radius, angle);
+    const label = polarToCartesian(cx, cy, radius + 18, angle);
+    const radians = ((angle - 90) * Math.PI) / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const anchor = cos > 0.24 ? "start" : cos < -0.24 ? "end" : "middle";
+    const labelDy = sin > 0.52 ? 9 : sin < -0.52 ? -4 : 3;
+    return {
+      axis,
+      value,
+      rawValue,
+      angle,
+      point,
+      outer,
+      label,
+      anchor,
+      labelDy,
+    };
+  });
+}
+
+function renderStyleRadarPanel() {
+  if (!elements.styleRadarPanel) {
+    return;
+  }
+  const investor = activeInvestor();
+  if (!investor) {
+    elements.styleRadarPanel.innerHTML = `<div class="empty">Please select an institution</div>`;
+    return;
+  }
+
+  const snapshot = getDisplaySnapshot(investor, state.quarter);
+  if (!snapshot) {
+    elements.styleRadarPanel.innerHTML = `<div class="empty">No 13F holdings data available for this quarter.</div>`;
+    return;
+  }
+
+  const profile = buildStyleProfileFromSnapshot(snapshot);
+  const peerProfile = getSp500StyleProfile();
+  const peerCovered = 500;
+  const radarScale = createStyleRadarScale(
+    profile,
+    peerProfile,
+    STYLE_RADAR_GLOBAL_GAMMA,
+    state.styleRadarScaleCap || STYLE_RADAR_FALLBACK_CAP
+  );
+
+  const width = 560;
+  const height = 408;
+  const cx = 280;
+  const cy = 194;
+  const radius = 166;
+
+  const rings = [0.2, 0.4, 0.6, 0.8, 1];
+  const ringPaths = rings
+    .map((level) => {
+      const points = STYLE_RADAR_AXES.map((_, idx) => {
+        const angle = -90 + (360 / STYLE_RADAR_AXES.length) * idx;
+        return polarToCartesian(cx, cy, radius * level, angle);
+      });
+      return `<path class="style-radar-ring" d="${buildClosedPath(points)}"></path>`;
+    })
+    .join("");
+
+  const ringLabels = rings
+    .map((level) => {
+      const y = cy - radius * level;
+      const rawWeight = radarScale.toRaw(level);
+      return `<text class="style-radar-ring-label" x="${cx + 8}" y="${round(y, 2)}">${round(rawWeight * 100, 1)}%</text>`;
+    })
+    .join("");
+
+  const primaryPoints = buildStyleRadarSeriesPoints(profile, cx, cy, radius, radarScale.toScaled);
+  const peerPoints = buildStyleRadarSeriesPoints(peerProfile, cx, cy, radius, radarScale.toScaled);
+  const primaryPath = buildClosedPath(primaryPoints.map((item) => item.point));
+  const peerPath = buildClosedPath(peerPoints.map((item) => item.point));
+
+  const axisMarkup = primaryPoints
+    .map(
+      (item) => `
+        <line class="style-radar-axis-line" x1="${cx}" y1="${cy}" x2="${round(item.outer.x, 2)}" y2="${round(item.outer.y, 2)}"></line>
+        <text class="style-radar-axis-label" x="${round(item.label.x, 2)}" y="${round(item.label.y + item.labelDy, 2)}" text-anchor="${
+          item.anchor
+        }">${item.axis.label}</text>
+      `
+    )
+    .join("");
+
+  const primaryStroke = STYLE_RADAR_PRIMARY_STROKE;
+  const primaryFill = STYLE_RADAR_PRIMARY_FILL;
+  const peerStroke = STYLE_RADAR_BENCHMARK_STROKE;
+  const peerFill = STYLE_RADAR_BENCHMARK_FILL;
+
+  const nodesMarkup = primaryPoints
+    .map(
+      (point, idx) => `
+        <circle class="style-radar-node primary" cx="${round(point.point.x, 2)}" cy="${round(point.point.y, 2)}" r="${
+          idx % 2 === 0 ? 3.3 : 2.8
+        }"></circle>
+      `
+    )
+    .join("");
+
+  const peerNodesMarkup = peerPoints
+    .map(
+      (point, idx) => `
+        <circle class="style-radar-node peer" cx="${round(point.point.x, 2)}" cy="${round(point.point.y, 2)}" r="${
+          idx % 2 === 0 ? 3 : 2.6
+        }"></circle>
+      `
+    )
+    .join("");
+
+  const ranked = STYLE_RADAR_AXES.map((axis, idx) => ({
+    ...axis,
+    order: idx,
+    value: profile[axis.key] || 0,
+  })).sort((a, b) => b.value - a.value || a.order - b.order);
+  const top = ranked[0] || { label: "--", value: 0 };
+  const second = ranked[1] || { value: 0 };
+  const concentration = top.value + second.value;
+  const breadth = ranked.filter((item) => item.value >= 0.1).length;
+
+  const breakdownRows = ranked
+    .map((axis) => {
+      const value = axis.value || 0;
+      const peer = peerProfile[axis.key] || 0;
+      const delta = value - peer;
+      const deltaClass = delta > 0.012 ? "up" : delta < -0.012 ? "down" : "flat";
+      const deltaLabel = Math.abs(delta) < 0.001 ? "Near S&P" : `${delta > 0 ? "+" : ""}${round(delta * 100, 1)}%`;
+      return `
+        <div class="style-breakdown-row">
+          <span class="style-breakdown-name">${axis.label}</span>
+          <span class="style-breakdown-value">${formatPct(value, 1, false)}</span>
+          <span class="style-breakdown-delta ${deltaClass}">${deltaLabel}</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  elements.styleRadarPanel.innerHTML = `
+    <div class="style-radar-shell">
+      <div class="style-radar-figure">
+        <svg class="style-radar-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${investor.org} style polygon chart">
+          <g class="style-radar-grid">
+            ${ringPaths}
+            ${axisMarkup}
+            ${ringLabels}
+          </g>
+          <path class="style-radar-area peer" d="${peerPath}" fill="${peerFill}" stroke="${peerStroke}"></path>
+          <path class="style-radar-area primary" d="${primaryPath}" fill="${primaryFill}" stroke="${primaryStroke}"></path>
+          ${peerNodesMarkup}
+          ${nodesMarkup}
+          <circle class="style-radar-center" cx="${cx}" cy="${cy}" r="3.4"></circle>
+        </svg>
+        <div class="style-radar-legend">
+          <span><i class="style-line primary"></i>${investor.org}</span>
+          <span><i class="style-line peer"></i>S&P 500 Benchmark (${peerCovered} names)</span>
+        </div>
+        <p class="style-radar-scale-note">Global normalized scale: cap ${round(
+          radarScale.cap * 100,
+          1
+        )}%, gamma ${radarScale.gamma}).</p>
+      </div>
+      <aside class="style-radar-side">
+        <div class="style-summary-cards">
+          <div class="style-summary-card">
+            <span>Dominant Style</span>
+            <strong>${top.label}</strong>
+            <em>${formatPct(top.value, 1, false)}</em>
+          </div>
+          <div class="style-summary-card">
+            <span>Top-2 Concentration</span>
+            <strong>${formatPct(concentration, 1, false)}</strong>
+            <em>Combined style weight</em>
+          </div>
+          <div class="style-summary-card">
+            <span>Style Breadth</span>
+            <strong>${breadth}</strong>
+            <em>Segments above 10%</em>
+          </div>
+        </div>
+        <div class="style-breakdown">
+          <div class="style-breakdown-head">
+            <span>Segment</span>
+            <span>Weight</span>
+            <span>vs S&P 500</span>
+          </div>
+          ${breakdownRows}
+        </div>
+      </aside>
+    </div>
+  `;
 }
 
 function niceStep(value) {
@@ -2026,8 +2679,8 @@ function renderAumTrendPanel() {
   }
 
   const width = 960;
-  const height = 286;
-  const padding = { top: 20, right: 18, bottom: 40, left: 56 };
+  const height = 466;
+  const padding = { top: 14, right: 18, bottom: 64, left: 56 };
   const innerWidth = width - padding.left - padding.right;
   const innerHeight = height - padding.top - padding.bottom;
   const baseY = padding.top + innerHeight;
@@ -2076,25 +2729,68 @@ function renderAumTrendPanel() {
       y: padding.top + ((yMax - tick) / range) * innerHeight,
     }));
 
-  let xLabelPoints = points.filter((point) => point.quarter.endsWith("Q1"));
-  if (!xLabelPoints.length) {
-    xLabelPoints = [points[0], points[points.length - 1]];
+  let xLabelEntries = points
+    .filter((point) => point.quarter.endsWith("Q1"))
+    .map((point) => ({
+      x: point.x,
+      year: parseQuarter(point.quarter).year,
+    }));
+  if (!xLabelEntries.length) {
+    xLabelEntries = [points[0], points[points.length - 1]].map((point) => ({
+      x: point.x,
+      year: parseQuarter(point.quarter).year,
+    }));
   }
   const seenYear = new Set();
-  xLabelPoints = xLabelPoints.filter((point) => {
-    const year = parseQuarter(point.quarter).year;
-    if (seenYear.has(year)) {
+  xLabelEntries = xLabelEntries.filter((entry) => {
+    if (seenYear.has(entry.year)) {
       return false;
     }
-    seenYear.add(year);
+    seenYear.add(entry.year);
     return true;
   });
+  const latestYear = parseQuarter(series[series.length - 1].quarter).year;
+  const tailYear = Math.max(2026, latestYear);
+  if (!seenYear.has(tailYear)) {
+    xLabelEntries.push({
+      x: width - padding.right,
+      year: tailYear,
+    });
+  }
+  xLabelEntries.sort((a, b) => a.x - b.x);
 
   const first = series[0];
   const last = series[series.length - 1];
   const cumulative = first.total > 0 ? last.total / first.total - 1 : 0;
   const multiple = first.total > 0 ? last.total / first.total : 0;
   const positiveTone = cumulative >= 0;
+  const quarterlyReturns = [];
+  for (let idx = 1; idx < series.length; idx += 1) {
+    const prev = series[idx - 1].total;
+    const curr = series[idx].total;
+    if (prev > 0 && Number.isFinite(curr) && Number.isFinite(prev)) {
+      quarterlyReturns.push(curr / prev - 1);
+    }
+  }
+  const quarterlyVolatility = standardDeviation(quarterlyReturns);
+  const oneYearBaseIdx = Math.max(0, series.length - 5);
+  const oneYearBase = series[oneYearBaseIdx];
+  const oneYearChange = oneYearBase && oneYearBase.total > 0 ? last.total / oneYearBase.total - 1 : 0;
+  let peak = values[0] || 0;
+  let maxDrawdown = 0;
+  values.forEach((value) => {
+    if (value > peak) {
+      peak = value;
+    }
+    if (peak > 0) {
+      const drawdown = value / peak - 1;
+      if (drawdown < maxDrawdown) {
+        maxDrawdown = drawdown;
+      }
+    }
+  });
+  const trough = Math.min(...values);
+  const reboundFromTrough = trough > 0 ? last.total / trough - 1 : 0;
 
   const lineColor = "hsl(184 76% 62%)";
   const glowColor = "hsla(184 90% 70% / 0.38)";
@@ -2116,15 +2812,13 @@ function renderAumTrendPanel() {
     )
     .join("");
 
-  const xAxisMarkup = xLabelPoints
+  const xAxisMarkup = xLabelEntries
     .map(
-      (point) => `
+      (entry) => `
         <g class="mountain-x-row">
-          <line class="mountain-x-grid" x1="${round(point.x, 2)}" y1="${padding.top}" x2="${round(point.x, 2)}" y2="${baseY}"></line>
-          <line class="mountain-x-mark" x1="${round(point.x, 2)}" y1="${baseY}" x2="${round(point.x, 2)}" y2="${baseY + 6}"></line>
-          <text class="mountain-quarter" x="${round(point.x, 2)}" y="${height - 12}" text-anchor="middle">${
-            parseQuarter(point.quarter).year
-          }</text>
+          <line class="mountain-x-grid" x1="${round(entry.x, 2)}" y1="${padding.top}" x2="${round(entry.x, 2)}" y2="${baseY}"></line>
+          <line class="mountain-x-mark" x1="${round(entry.x, 2)}" y1="${baseY}" x2="${round(entry.x, 2)}" y2="${baseY + 6}"></line>
+          <text class="mountain-quarter" x="${round(entry.x, 2)}" y="${height - 24}" text-anchor="middle">${entry.year}</text>
         </g>
       `
     )
@@ -2177,13 +2871,35 @@ function renderAumTrendPanel() {
           ${nodesMarkup}
           <line class="mountain-y-axis" x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${baseY}"></line>
           <line class="mountain-baseline" x1="${padding.left}" y1="${baseY}" x2="${width - padding.right}" y2="${baseY}"></line>
-          <text class="mountain-axis-title" x="${padding.left}" y="${padding.top - 8}" text-anchor="start">${axisFormatter.title}</text>
-          <text class="mountain-axis-title x" x="${width - padding.right}" y="${height - 8}" text-anchor="end">Year (Q1)</text>
+          <text class="mountain-axis-title" x="${padding.left}" y="${padding.top + 4}" text-anchor="start" dominant-baseline="hanging">${axisFormatter.title}</text>
+          <text class="mountain-axis-title x" x="${width - padding.right}" y="${height - 6}" text-anchor="end">Year (Q1)</text>
           <line class="mountain-focus-line" x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${baseY}"></line>
           <circle class="mountain-focus-point" cx="${padding.left}" cy="${baseY}" r="5.2" fill="${pointColor}"></circle>
           <rect class="mountain-hover-layer" x="${padding.left}" y="${padding.top}" width="${innerWidth}" height="${innerHeight}"></rect>
         </svg>
         <div class="mountain-tooltip" aria-live="polite"></div>
+      </div>
+      <div class="trend-insights">
+        <div class="trend-insight ${oneYearChange >= 0 ? "up" : "down"}">
+          <span>1Y Change</span>
+          <strong>${formatPct(oneYearChange, 1, false)}</strong>
+          <em>${formatQuarter(oneYearBase.quarter)} to ${formatQuarter(last.quarter)}</em>
+        </div>
+        <div class="trend-insight ${maxDrawdown < -0.001 ? "down" : "flat"}">
+          <span>Max Drawdown</span>
+          <strong>${formatPct(maxDrawdown, 1, false)}</strong>
+          <em>Peak-to-trough decline</em>
+        </div>
+        <div class="trend-insight">
+          <span>Quarterly Volatility</span>
+          <strong>${formatPct(quarterlyVolatility, 1, false)}</strong>
+          <em>Std. dev. of QoQ changes</em>
+        </div>
+        <div class="trend-insight ${reboundFromTrough >= 0 ? "up" : "down"}">
+          <span>Rebound from Trough</span>
+          <strong>${formatPct(reboundFromTrough, 1, false)}</strong>
+          <em>From historical low point</em>
+        </div>
       </div>
     </div>
   `;
@@ -2253,6 +2969,7 @@ function renderInstitutionGrid() {
   if (!elements.institutionGrid) {
     return;
   }
+  const focusActive = Boolean(state.catalogTreemapFocusKey && state.catalogTreemapFocusInstitutionIds.size);
   const sortedInvestors = INVESTORS.map((inv) => {
     const latest = getLatestSnapshotForInvestor(inv);
     return {
@@ -2270,9 +2987,11 @@ function renderInstitutionGrid() {
     const avatarUrl = FOUNDER_AVATAR_BY_ID[inv.id] || "";
     const initials = managerInitials(inv.manager);
     const avatarClass = avatarUrl ? "founder-avatar" : "founder-avatar fallback";
+    const isTreemapHit = !focusActive || state.catalogTreemapFocusInstitutionIds.has(inv.id);
+    const cardToneClass = focusActive ? (isTreemapHit ? " treemap-hit" : " treemap-muted") : "";
 
     return `
-      <button class="institution-card" type="button" data-investor="${inv.id}" style="--card-color:${inv.color}">
+      <button class="institution-card${cardToneClass}" type="button" data-investor="${inv.id}" style="--card-color:${inv.color}">
         <div class="institution-top">
           <div class="institution-main">
             <p class="institution-org">${inv.org}</p>
@@ -2292,7 +3011,7 @@ function renderInstitutionGrid() {
           <span class="institution-aum">${latestAum}</span>
           <span class="institution-quarter">${latestQuarter}</span>
           <span class="institution-tag">${styleTag}</span>
-          <span class="institution-holdings">${holdingsCount} Holdings</span>
+          <span class="institution-holdings">${holdingsCount} Holdings${focusActive && isTreemapHit ? " · Match" : ""}</span>
         </div>
       </button>
     `;
@@ -2305,6 +3024,537 @@ function renderInstitutionGrid() {
 
   if (elements.catalogMeta) {
     elements.catalogMeta.textContent = `${cards.length} institutions available`;
+  }
+}
+
+function buildTreemapLayout(items, width, height, metricKey = "value") {
+  const total = items.reduce((sum, item) => sum + (Number(item[metricKey]) || 0), 0) || 1;
+  const scaled = items.map((item) => ({
+    ...item,
+    area: ((Number(item[metricKey]) || 0) / total) * width * height,
+  }));
+  const layout = [];
+
+  const place = (subset, x, y, w, h) => {
+    if (!subset.length || w <= 0 || h <= 0) {
+      return;
+    }
+    if (subset.length === 1) {
+      layout.push({
+        ...subset[0],
+        x,
+        y,
+        w,
+        h,
+      });
+      return;
+    }
+
+    const subsetArea = subset.reduce((sum, item) => sum + item.area, 0) || 1;
+    let split = 1;
+    let leftArea = subset[0].area;
+    const half = subsetArea / 2;
+
+    while (split < subset.length - 1 && leftArea < half) {
+      leftArea += subset[split].area;
+      split += 1;
+    }
+
+    const left = subset.slice(0, split);
+    const right = subset.slice(split);
+    const leftTotal = left.reduce((sum, item) => sum + item.area, 0);
+
+    if (w >= h) {
+      const leftWidth = subsetArea > 0 ? (leftTotal / subsetArea) * w : w / 2;
+      place(left, x, y, leftWidth, h);
+      place(right, x + leftWidth, y, w - leftWidth, h);
+    } else {
+      const leftHeight = subsetArea > 0 ? (leftTotal / subsetArea) * h : h / 2;
+      place(left, x, y, w, leftHeight);
+      place(right, x, y + leftHeight, w, h - leftHeight);
+    }
+  };
+
+  place(scaled, 0, 0, width, height);
+  return layout;
+}
+
+function getInvestorById(investorId) {
+  return INVESTORS.find((inv) => inv.id === investorId) || null;
+}
+
+function applyCatalogTreemapFocus(nextKey) {
+  const focusKey = nextKey && state.catalogTreemapItemsByKey.has(nextKey) ? nextKey : "";
+  state.catalogTreemapFocusKey = focusKey;
+  if (focusKey) {
+    const focusItem = state.catalogTreemapItemsByKey.get(focusKey);
+    state.catalogTreemapFocusInstitutionIds = new Set((focusItem?.holders || []).map((holder) => holder.id));
+  } else {
+    state.catalogTreemapFocusInstitutionIds = new Set();
+  }
+  renderInstitutionGrid();
+  renderCatalogTreemap();
+}
+
+function renderTreemapTooltip(item, coveredInstitutions) {
+  const heatPercent = round((Number(item.heatScore) || 0) * 100, 1);
+  const holders = (item.holders || [])
+    .slice(0, 4)
+    .map((holder, idx) => {
+      const investor = getInvestorById(holder.id);
+      const org = investor ? investor.org : holder.id;
+      return `<li><span>${idx + 1}. ${escapeHtml(org)}</span><strong>${formatB(holder.value)}B</strong></li>`;
+    })
+    .join("");
+
+  return `
+    <p class="treemap-tooltip-title">${escapeHtml(item.display)}</p>
+    <p class="treemap-tooltip-metric">Heat Score: <strong>${heatPercent}%</strong></p>
+    <p class="treemap-tooltip-metric">Coverage: <strong>${item.institutions}/${coveredInstitutions}</strong> institutions</p>
+    <p class="treemap-tooltip-metric">Average Weight (All Institutions): <strong>${formatPct(item.avgWeight || 0, 2, false)}</strong></p>
+    <p class="treemap-tooltip-metric">Aggregated Value: <strong>${formatB(item.value)}B</strong></p>
+    ${holders ? `<ul class="treemap-tooltip-list">${holders}</ul>` : ""}
+  `;
+}
+
+function renderCatalogTreemap() {
+  if (!elements.institutionTreemap) {
+    return;
+  }
+
+  const aggregate = new Map();
+  let coveredInstitutions = 0;
+
+  INVESTORS.forEach((investor) => {
+    const latest = getLatestSnapshotForInvestor(investor);
+    if (!latest || !latest.snapshot) {
+      return;
+    }
+    coveredInstitutions += 1;
+    const seen = new Set();
+    latest.snapshot.holdings
+      .filter((item) => item && item.key !== "OTHER" && Number.isFinite(item.value) && item.value > 0)
+      .forEach((item) => {
+        const key = ((item.ticker || "").trim().toUpperCase() || item.key || item.code || item.company || "").trim();
+        if (!key) {
+          return;
+        }
+        const company = cleanCompanyName(item.company || "");
+        const ticker = (item.ticker || "").trim().toUpperCase();
+        const display = ticker ? formatAssetLabel(company, ticker) : getHoldingDisplayLabel(item);
+        if (!aggregate.has(key)) {
+          aggregate.set(key, {
+            key,
+            ticker: ticker || key,
+            company: company || cleanCompanyName(display) || key,
+            display,
+            value: 0,
+            weightSum: 0,
+            avgWeight: 0,
+            institutions: 0,
+            holderValueById: new Map(),
+          });
+        }
+        const row = aggregate.get(key);
+        row.value += item.value;
+        row.weightSum += Number(item.weight) || 0;
+        row.holderValueById.set(investor.id, (row.holderValueById.get(investor.id) || 0) + item.value);
+        if (!seen.has(key)) {
+          row.institutions += 1;
+          seen.add(key);
+        }
+      });
+  });
+
+  const avgWeightDenominator = Math.max(1, coveredInstitutions);
+  const rawItems = Array.from(aggregate.values()).map((item) => ({
+    ...item,
+    avgWeight: item.weightSum / avgWeightDenominator,
+    holders: Array.from(item.holderValueById.entries())
+      .map(([id, value]) => ({ id, value }))
+      .sort((a, b) => b.value - a.value),
+  }));
+
+  const maxInstitutions = rawItems.reduce((max, item) => Math.max(max, item.institutions || 0), 0) || 1;
+  const maxAvgWeight = rawItems.reduce((max, item) => Math.max(max, Number(item.avgWeight) || 0), 0) || 1;
+  const maxValue = rawItems.reduce((max, item) => Math.max(max, Number(item.value) || 0), 0) || 1;
+
+  const scoredItems = rawItems.map((item) => {
+    const countNorm = (item.institutions || 0) / maxInstitutions;
+    const avgWeightNorm = (Number(item.avgWeight) || 0) / maxAvgWeight;
+    const valueNorm = (Number(item.value) || 0) / maxValue;
+    const countBoost = Math.pow(clamp(countNorm, 0, 1), 1.8);
+    const avgWeightBoost = Math.pow(clamp(avgWeightNorm, 0, 1), 1.55);
+    const valueBoost = Math.pow(clamp(valueNorm, 0, 1), 2.2);
+    const rawHeat = countBoost * 0.3 + avgWeightBoost * 0.4 + valueBoost * 0.3;
+    return {
+      ...item,
+      rawHeat,
+      countNorm,
+      avgWeightNorm,
+      valueNorm,
+      countBoost,
+      avgWeightBoost,
+      valueBoost,
+    };
+  });
+
+  const rawHeatMin = scoredItems.reduce((min, item) => Math.min(min, item.rawHeat), Number.POSITIVE_INFINITY);
+  const rawHeatMax = scoredItems.reduce((max, item) => Math.max(max, item.rawHeat), 0);
+  const rawHeatRange = Math.max(rawHeatMax - rawHeatMin, 1e-9);
+  const heatFloor = 0.045;
+  const contrastGamma = 1.68;
+  const items = scoredItems
+    .map((item) => {
+      const normalized = clamp((item.rawHeat - rawHeatMin) / rawHeatRange, 0, 1);
+      const contrasted = Math.pow(normalized, contrastGamma);
+      return {
+        ...item,
+        heatScore: heatFloor + contrasted * (1 - heatFloor),
+      };
+    })
+    .sort((a, b) => b.heatScore - a.heatScore || b.institutions - a.institutions || b.avgWeight - a.avgWeight || b.value - a.value)
+    .slice(0, 24);
+
+  state.catalogTreemapCoveredInstitutions = coveredInstitutions;
+  state.catalogTreemapItemsByKey = new Map(items.map((item) => [item.key, item]));
+  if (state.catalogTreemapFocusKey && !state.catalogTreemapItemsByKey.has(state.catalogTreemapFocusKey)) {
+    state.catalogTreemapFocusKey = "";
+    state.catalogTreemapFocusInstitutionIds = new Set();
+  } else if (state.catalogTreemapFocusKey) {
+    const focusItem = state.catalogTreemapItemsByKey.get(state.catalogTreemapFocusKey);
+    state.catalogTreemapFocusInstitutionIds = new Set((focusItem?.holders || []).map((holder) => holder.id));
+  }
+
+  if (elements.institutionTreemapMeta) {
+    if (state.catalogTreemapFocusKey) {
+      const focusItem = state.catalogTreemapItemsByKey.get(state.catalogTreemapFocusKey);
+      const chips = (focusItem?.holders || [])
+        .slice(0, 8)
+        .map((holder) => {
+          const investor = getInvestorById(holder.id);
+          const org = investor ? investor.org : holder.id;
+          return `<span class="treemap-focus-chip">${escapeHtml(org)}</span>`;
+        })
+        .join("");
+      elements.institutionTreemapMeta.innerHTML = `
+        <div class="treemap-focus-row">
+          <span class="treemap-focus-title">Focused:</span>
+          <span class="treemap-focus-value">${escapeHtml(focusItem?.display || state.catalogTreemapFocusKey)}</span>
+          <span class="treemap-focus-value">Heat ${round(((focusItem && focusItem.heatScore) || 0) * 100, 1)}%</span>
+          <span class="treemap-focus-value">${formatPct(focusItem?.avgWeight || 0, 2, false)} avg (all)</span>
+          <span class="treemap-focus-value">${formatB(focusItem?.value || 0)}B</span>
+          <span class="treemap-focus-value">${focusItem?.institutions || 0} institutions</span>
+          <button type="button" class="treemap-clear-btn" data-action="clear-treemap-focus">Clear</button>
+        </div>
+        ${chips ? `<div class="treemap-focus-chips">${chips}</div>` : ""}
+      `;
+    } else {
+      elements.institutionTreemapMeta.innerHTML = `
+        <div class="treemap-hint-row">
+          <span>Area metric: weighted heat score from coverage, average weight (all institutions), and aggregated value.</span>
+          <span class="treemap-hint-next">Click a block to highlight related institutions.</span>
+        </div>
+      `;
+    }
+  }
+
+  if (!items.length) {
+    if (elements.institutionTreemapMeta) {
+      elements.institutionTreemapMeta.innerHTML = "";
+    }
+    elements.institutionTreemap.innerHTML = `<div class="treemap-empty">Treemap will appear after SEC filing data is loaded.</div>`;
+    return;
+  }
+
+  const width = 1200;
+  const height = 420;
+  const cellGap = 2;
+  const cells = buildTreemapLayout(items, width, height, "heatScore");
+  const palette = makeVividPalette("#6f7ce9", cells.length);
+
+  const gradientDefs = cells
+    .map((_, idx) => {
+      const baseHsl = rgbToHsl(hexToRgb(palette[idx]));
+      const hueShiftSeq = [0, 14, -12, 22, -18, 30, -24, 38];
+      const hue = (baseHsl.h + hueShiftSeq[idx % hueShiftSeq.length] + Math.floor(idx / hueShiftSeq.length) * 5 + 360) % 360;
+      const topColor = rgbToHex(
+        hslToRgb(hue, clamp(baseHsl.s * 0.92 + 0.04, 0.46, 0.95), clamp(baseHsl.l + 0.18, 0.5, 0.82))
+      );
+      const midColor = rgbToHex(
+        hslToRgb((hue + 10) % 360, clamp(baseHsl.s * 0.84 + 0.03, 0.42, 0.9), clamp(baseHsl.l + 0.02, 0.36, 0.72))
+      );
+      const bottomColor = rgbToHex(
+        hslToRgb((hue - 6 + 360) % 360, clamp(baseHsl.s * 0.88 + 0.04, 0.44, 0.92), clamp(baseHsl.l - 0.08, 0.28, 0.62))
+      );
+      return `
+        <linearGradient id="tm-grad-${idx}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${topColor}" />
+          <stop offset="55%" stop-color="${midColor}" />
+          <stop offset="100%" stop-color="${bottomColor}" />
+        </linearGradient>
+        <linearGradient id="tm-sheen-${idx}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+          <stop offset="24%" stop-color="#ffffff" stop-opacity="0.08" />
+          <stop offset="46%" stop-color="#ffffff" stop-opacity="0.3" />
+          <stop offset="62%" stop-color="#ffffff" stop-opacity="0.11" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="tm-rim-${idx}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#eef4ff" stop-opacity="0.58" />
+          <stop offset="100%" stop-color="#d4e0ff" stop-opacity="0.12" />
+        </linearGradient>
+      `;
+    })
+    .join("");
+
+  const markup = cells
+    .map((cell, idx) => {
+      const x = round(cell.x + cellGap, 2);
+      const y = round(cell.y + cellGap, 2);
+      const w = round(Math.max(0, cell.w - cellGap * 2), 2);
+      const h = round(Math.max(0, cell.h - cellGap * 2), 2);
+      if (w <= 1 || h <= 1) {
+        return "";
+      }
+
+      const cornerRadius = round(clamp(Math.min(w, h) * 0.1, 8, 16), 2);
+      const padding = round(clamp(Math.min(w, h) * 0.085, 7, 14), 2);
+      const innerWidth = Math.max(20, w - padding * 2);
+      const innerHeight = Math.max(18, h - padding * 2);
+      const rowGap = round(clamp(Math.min(w, h) * 0.042, 3.2, 8), 2);
+      const nameGap = round(clamp(rowGap * 1.35 + 1.1, 4.6, 11.4), 2);
+      const areaScale = clamp(Math.sqrt((w * h) / (132 * 84)), 0.72, 1.28);
+      const widthScale = clamp(w / 220, 0.7, 1.22);
+      const textScale = round(clamp(areaScale * 0.64 + widthScale * 0.36, 0.72, 1.28), 3);
+      const textWidthBudget = Math.max(18, innerWidth * 0.94);
+
+      const tickerRaw = cell.ticker || cell.display;
+      const tickerMax = round(clamp(21.5 * textScale, 10, 24), 2);
+      const tickerBaseSize = fitTextSize(tickerRaw, textWidthBudget, 7.4, tickerMax, 0.56);
+      const tickerCharLimit = Math.max(4, Math.floor(textWidthBudget / Math.max(tickerBaseSize * 0.56, 4.4)));
+      const mainLabel = truncateLabel(tickerRaw, tickerCharLimit);
+      const tickerSize = round(
+        clamp(Math.min(fitTextSize(mainLabel, textWidthBudget, 7.4, tickerMax, 0.56), innerHeight * 0.36), 7.4, tickerMax),
+        2
+      );
+      const tickerStroke = round(clamp(tickerSize * 0.1, 0.72, 1.32), 2);
+
+      const companyRaw = cell.company || cleanCompanyName(cell.display || "") || cell.key || "Unknown";
+      const nameMax = round(clamp(13.2 * textScale, 8.2, Math.min(15.2, tickerSize * 0.76)), 2);
+      const nameBaseSize = fitTextSize(companyRaw, textWidthBudget, 6.8, nameMax, 0.54);
+      const nameCharLimit = Math.max(10, Math.floor(textWidthBudget / Math.max(nameBaseSize * 0.56, 4.5)));
+      const secondaryLabel = truncateLabel(companyRaw, nameCharLimit);
+      const nameSize = round(
+        clamp(Math.min(fitTextSize(secondaryLabel, textWidthBudget, 6.8, nameMax, 0.54), innerHeight * 0.22), 6.8, nameMax),
+        2
+      );
+      const nameStroke = round(clamp(nameSize * 0.08, 0.56, 0.9), 2);
+
+      const valueLabel = `${formatB(cell.value)}B`;
+      const heatPct = round((cell.heatScore || 0) * 100, 1);
+      const heatLabel = `Heat ${heatPct}`;
+      const avgWeightLabel = `Avg ${formatPct(cell.avgWeight || 0, 2, false)}`;
+      const instLabel = `${cell.institutions}/${coveredInstitutions} inst`;
+      let metaLines = innerWidth >= 128 && innerHeight >= 64 ? 2 : innerWidth >= 78 && innerHeight >= 34 ? 1 : 0;
+      let metaLine1 = `${heatLabel} · ${avgWeightLabel}`;
+      let metaLine2 = `${valueLabel} · ${instLabel}`;
+      if (metaLines === 1) {
+        metaLine1 = innerWidth < 92 ? `H ${heatPct}% · ${instLabel}` : `${heatLabel} · ${valueLabel}`;
+      }
+      const metaMax = round(clamp(10.8 * textScale, 7.1, 11.8), 2);
+      let metaSize = round(
+        clamp(
+          Math.min(
+            fitTextSize(
+              metaLines === 2 ? (metaLine1.length >= metaLine2.length ? metaLine1 : metaLine2) : metaLine1,
+              textWidthBudget,
+              6.5,
+              metaMax,
+              0.56
+            ),
+            innerHeight * 0.14
+          ),
+          6.5,
+          metaMax
+        ),
+        2
+      );
+      let metaStroke = round(clamp(metaSize * 0.08, 0.52, 0.84), 2);
+
+      let showTicker = innerWidth >= 30 && innerHeight >= 15;
+      let showName = innerWidth >= 78 && innerHeight >= 33;
+      if (!showTicker) {
+        showName = false;
+        metaLines = 0;
+      }
+
+      const requiredHeight = (withName, metaCount, metaFontSize) => {
+        const tickerPart = showTicker ? tickerSize * 1.02 : 0;
+        const namePart = withName ? nameGap + nameSize * 1.14 : 0;
+        const metaPart = metaCount > 0 ? rowGap + metaFontSize * 1.14 * metaCount : 0;
+        return tickerPart + namePart + metaPart;
+      };
+
+      if (requiredHeight(showName, metaLines, metaSize) > innerHeight && metaLines === 2) {
+        metaLines = 1;
+        metaLine1 = innerWidth < 92 ? `H ${heatPct}% · ${instLabel}` : `${heatLabel} · ${valueLabel}`;
+        metaSize = round(clamp(Math.min(fitTextSize(metaLine1, textWidthBudget, 6.5, metaMax, 0.56), innerHeight * 0.14), 6.5, metaMax), 2);
+        metaStroke = round(clamp(metaSize * 0.08, 0.52, 0.84), 2);
+      }
+      if (requiredHeight(showName, metaLines, metaSize) > innerHeight && showName) {
+        showName = false;
+      }
+      if (requiredHeight(showName, metaLines, metaSize) > innerHeight) {
+        metaLines = 0;
+      }
+
+      const metaCharLimit = Math.max(11, Math.floor(textWidthBudget / Math.max(metaSize * 0.56, 4.2)));
+      metaLine1 = truncateLabel(metaLine1, metaCharLimit);
+      if (metaLines === 2) {
+        metaLine2 = truncateLabel(metaLine2, metaCharLimit);
+      }
+
+      const contentHeight = requiredHeight(showName, metaLines, metaSize);
+      const textX = round(x + w / 2, 2);
+      const startY = y + padding + Math.max(0, (innerHeight - contentHeight) / 2);
+      let cursor = startY;
+      const tickerY = round(cursor + tickerSize * 0.52, 2);
+      cursor += tickerSize * 1.02;
+      let nameY = 0;
+      if (showName) {
+        cursor += nameGap;
+        nameY = round(cursor + nameSize * 0.52, 2);
+        cursor += nameSize * 1.12;
+      }
+      let metaY1 = 0;
+      let metaY2 = 0;
+      if (metaLines > 0) {
+        cursor += rowGap;
+        metaY1 = round(cursor + metaSize * 0.5, 2);
+        if (metaLines === 2) {
+          cursor += metaSize * 1.08;
+          metaY2 = round(cursor + metaSize * 0.5, 2);
+        }
+      }
+
+      const isActive = state.catalogTreemapFocusKey && state.catalogTreemapFocusKey === cell.key;
+      const isMuted = state.catalogTreemapFocusKey && state.catalogTreemapFocusKey !== cell.key;
+      const title = `${cell.display} | ${heatLabel} | ${avgWeightLabel} | ${valueLabel} | ${instLabel}`;
+
+      return `
+        <g class="treemap-cell${isActive ? " is-active" : ""}${isMuted ? " is-muted" : ""}" data-key="${escapeHtml(cell.key)}">
+          <rect class="treemap-block" x="${x}" y="${y}" width="${w}" height="${h}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#tm-grad-${idx})" />
+          <rect class="treemap-metal-sheen" x="${x}" y="${y}" width="${w}" height="${h}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#tm-sheen-${idx})"></rect>
+          <rect class="treemap-rim" x="${x}" y="${y}" width="${w}" height="${h}" rx="${cornerRadius}" ry="${cornerRadius}" stroke="url(#tm-rim-${idx})"></rect>
+          <title>${escapeHtml(title)}</title>
+          ${
+            showTicker
+              ? `<text class="treemap-ticker" x="${textX}" y="${tickerY}" style="font-size:${tickerSize}px; letter-spacing:${round(
+                  clamp(tickerSize / 650, 0.012, 0.045),
+                  3
+                )}em; stroke-width:${tickerStroke}px;" text-anchor="middle" dominant-baseline="middle">${escapeHtml(mainLabel)}</text>`
+              : ""
+          }
+          ${
+            showName
+              ? `<text class="treemap-name" x="${textX}" y="${nameY}" style="font-size:${nameSize}px; stroke-width:${nameStroke}px;" text-anchor="middle" dominant-baseline="middle">${escapeHtml(
+                  secondaryLabel
+                )}</text>`
+              : ""
+          }
+          ${
+            metaLines > 0
+              ? `<text class="treemap-meta" x="${textX}" y="${metaY1}" style="font-size:${metaSize}px; stroke-width:${metaStroke}px;" text-anchor="middle" dominant-baseline="middle">${escapeHtml(
+                  metaLine1
+                )}</text>
+                 ${
+                   metaLines === 2
+                     ? `<text class="treemap-meta" x="${textX}" y="${metaY2}" style="font-size:${metaSize}px; stroke-width:${metaStroke}px;" text-anchor="middle" dominant-baseline="middle">${escapeHtml(
+                         metaLine2
+                       )}</text>`
+                     : ""
+                 }`
+              : ""
+          }
+        </g>
+      `;
+    })
+    .join("");
+
+  elements.institutionTreemap.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Popular holdings treemap">
+      <defs>
+        ${gradientDefs}
+      </defs>
+      ${markup}
+    </svg>
+    <div class="treemap-tooltip" hidden></div>
+  `;
+}
+
+function bindCatalogTreemapInteractions() {
+  if (elements.institutionTreemap && elements.institutionTreemap.dataset.bound !== "1") {
+    elements.institutionTreemap.dataset.bound = "1";
+    elements.institutionTreemap.addEventListener("pointermove", (event) => {
+      const target = event.target;
+      const cell = target && typeof target.closest === "function" ? target.closest(".treemap-cell[data-key]") : null;
+      const tooltip = elements.institutionTreemap.querySelector(".treemap-tooltip");
+      if (!tooltip) {
+        return;
+      }
+      if (!cell) {
+        tooltip.hidden = true;
+        return;
+      }
+
+      const key = cell.dataset.key || "";
+      const item = state.catalogTreemapItemsByKey.get(key);
+      if (!item) {
+        tooltip.hidden = true;
+        return;
+      }
+
+      tooltip.innerHTML = renderTreemapTooltip(item, Math.max(1, state.catalogTreemapCoveredInstitutions || INVESTORS.length));
+      tooltip.hidden = false;
+      const box = elements.institutionTreemap.getBoundingClientRect();
+      const desiredLeft = event.clientX - box.left + 14;
+      const desiredTop = event.clientY - box.top + 14;
+      const maxLeft = Math.max(8, box.width - tooltip.offsetWidth - 8);
+      const maxTop = Math.max(8, box.height - tooltip.offsetHeight - 8);
+      const left = clamp(desiredLeft, 8, maxLeft);
+      const top = clamp(desiredTop, 8, maxTop);
+      tooltip.style.left = `${round(left, 1)}px`;
+      tooltip.style.top = `${round(top, 1)}px`;
+    });
+
+    elements.institutionTreemap.addEventListener("pointerleave", () => {
+      const tooltip = elements.institutionTreemap.querySelector(".treemap-tooltip");
+      if (tooltip) {
+        tooltip.hidden = true;
+      }
+    });
+
+    elements.institutionTreemap.addEventListener("click", (event) => {
+      const target = event.target;
+      const cell = target && typeof target.closest === "function" ? target.closest(".treemap-cell[data-key]") : null;
+      if (!cell) {
+        return;
+      }
+      const key = cell.dataset.key || "";
+      applyCatalogTreemapFocus(state.catalogTreemapFocusKey === key ? "" : key);
+    });
+  }
+
+  if (elements.institutionTreemapMeta && elements.institutionTreemapMeta.dataset.bound !== "1") {
+    elements.institutionTreemapMeta.dataset.bound = "1";
+    elements.institutionTreemapMeta.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-action='clear-treemap-focus']");
+      if (!btn) {
+        return;
+      }
+      applyCatalogTreemapFocus("");
+    });
   }
 }
 
@@ -2707,6 +3957,7 @@ function renderChangesCards() {
 
 function renderAll() {
   renderInstitutionGrid();
+  renderCatalogTreemap();
   if (state.view === "list") {
     showCatalogView();
     return;
@@ -2714,6 +3965,7 @@ function renderAll() {
   showDetailView();
   renderDetailHeader();
   renderQuarterSelector();
+  renderStyleRadarPanel();
   renderAumTrendPanel();
   renderHoldingsCards();
   renderChangesCards();
@@ -2819,6 +4071,7 @@ function bindSnapshotAction() {
 
 bindControlActions();
 bindHoldingsCardActions();
+bindCatalogTreemapInteractions();
 bindSnapshotAction();
 showCatalogView();
 renderAll();

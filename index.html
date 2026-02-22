@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260220-ui77" />
+    <link rel="stylesheet" href="./styles.css?v=20260220-ui102" />
   </head>
   <body>
     <div class="site-bg"></div>
@@ -27,6 +27,14 @@
             <p id="catalogMeta" class="catalog-meta"></p>
           </div>
           <div id="institutionGrid" class="institution-grid"></div>
+          <section class="catalog-treemap">
+            <div class="catalog-panel-head">
+              <h2>Popular Holdings Treemap</h2>
+              <p>Area sized by heat score from coverage, average weight, and aggregated value.</p>
+            </div>
+            <div id="institutionTreemapMeta" class="catalog-treemap-meta"></div>
+            <div id="institutionTreemap" class="catalog-treemap-canvas"></div>
+          </section>
         </div>
       </section>
 
@@ -48,18 +56,32 @@
           <div id="detailQuickStats" class="detail-stats"></div>
         </header>
 
-        <section class="panel panel-trend">
+        <section class="panel panel-evolution">
           <div class="panel-head">
-            <h2>Holdings Net Asset Trend</h2>
-            <p>From the earliest filing onward, hover the line to inspect each quarter.</p>
+            <h2>Portfolio Evolution & Style Snapshot</h2>
+            <p>Trend as the primary view, with a compact style polygon and S&P 500 comparison on the side.</p>
           </div>
-          <div id="aumTrendPanel" class="aum-trend-panel"></div>
+          <div class="evolution-panel">
+            <div class="evolution-main">
+              <div class="evolution-subhead">
+                <h3>Holdings Net Asset Trend</h3>
+                <p>Hover or click a point to inspect each quarter.</p>
+              </div>
+              <div id="aumTrendPanel" class="aum-trend-panel"></div>
+            </div>
+            <div class="evolution-side">
+              <div class="evolution-subhead">
+                <h3>Institution Style</h3>
+                <p>7-dimension style profile vs S&P 500 benchmark.</p>
+              </div>
+              <div id="styleRadarPanel" class="style-radar-panel"></div>
+            </div>
+          </div>
         </section>
 
         <section class="panel panel-holdings">
           <div class="panel-head">
             <h2>Quarterly Holdings Overview</h2>
-            <p>Holdings table on the left, portfolio pie chart on the right, with full expansion support.</p>
           </div>
           <div id="holdingsCards" class="holdings-cards"></div>
         </section>
@@ -80,6 +102,6 @@
     </footer>
 
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=20260220-ui77"></script>
+    <script src="./app.js?v=20260220-ui106"></script>
   </body>
 </html>

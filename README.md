@@ -1,56 +1,80 @@
 # 13F Tracker
 
-A two-step web dashboard for tracking institutional 13F portfolios from SEC EDGAR:
+13F Tracker is a two-step, SEC-driven dashboard for monitoring leading institutions' US equity holdings from Form 13F filings.
 
-1. Institution card catalog
-2. Institution detail page (holdings, pie chart, and quarter-over-quarter changes)
+It is built as a static web app (`index.html`, `app.js`, `styles.css`) with locally prepared SEC JSON datasets.
 
-The app is a static frontend (`index.html` + `app.js` + `styles.css`) powered by local JSON data files generated from SEC filings.
+## Core Workflow
 
-## What You Can Do
+### Step 1: Institution Catalog
 
-- Browse institutions in a clean card grid
-- Open any institution and review:
-  - Quarterly holdings table
-  - Interactive pie chart
-  - Holdings net asset trend
-  - Quarter-over-quarter add/trim ranking
-- Compare SEC-reported holdings history back to 2016 (where available)
-- Expand holdings lists beyond the default top rows
+- Professional card grid for institution selection (3x3 layout)
+- Founder avatars and style labels for quick recognition
+- Popular Holdings Treemap:
+  - Interactive hover/click behavior
+  - Heat-based block sizing (coverage + average weight + aggregated value)
+  - Focus mode to highlight institutions sharing the same holding
 
-## Data Sources
+### Step 2: Institution Detail
 
-- SEC EDGAR submissions and filing index
-- SEC 13F information table XML files
-- SEC ticker mapping file
+- Quarter selector with automatic data refresh
+- Official website entry (shown only when available)
+- Portfolio Evolution & Style Snapshot:
+  - Holdings net asset trend (interactive mountain chart)
+  - Institution Style polygon vs S&P 500 benchmark
+  - Segment table sorted by current segment weight
+- Quarterly Holdings Overview:
+  - Holdings table (default top 15, expandable to full list)
+  - Interactive pie chart with hover labels
+  - US ticker labels and cleaned company naming
+- Quarter-over-Quarter Position Changes:
+  - Add and Trim panels shown side by side
+  - Ranked by trade amount
+  - Share-count delta and change-rate indicators
+- Snapshot export for the current detail view (non-expanded holdings layout)
 
-Primary local data files:
+## Data Coverage and Source
 
-- `data/sec-13f-history.json`
-- `data/sec-13f-latest.json`
+- Source: SEC EDGAR Form 13F filings
+- Coverage target: quarterly history from 2016 onward (by institution availability)
+- Main data files:
+  - `data/sec-13f-history.json`
+  - `data/sec-13f-latest.json`
+
+## Heat Metric (Treemap)
+
+Treemap block size uses a weighted heat score based on:
+
+- Institution coverage count
+- Average holding weight (averaged across all tracked institutions)
+- Aggregated market value
+
+Current weight mix in code:
+
+- Coverage count: `0.3`
+- Average holding weight: `0.4`
+- Aggregated value: `0.3`
+
+Additional nonlinear scaling and contrast normalization are applied so block-size differences are visually clearer.
 
 ## Quick Start
 
-### 1) Run the site locally
-
 ```bash
 cd "/Users/coattail/Documents/New project/guru-13f-monitor"
-./start-site.sh 9010
+./start-site.sh 9012
 ```
 
 Open:
 
-- `http://127.0.0.1:9010/`
+- `http://127.0.0.1:9012/`
 
-### 2) Force refresh when UI changes
+If you use another port:
 
-Use hard refresh in browser:
+```bash
+./start-site.sh 9010
+```
 
-- macOS: `Cmd + Shift + R`
-
-The project uses cache-busting query params in `index.html` (`?v=...`) for `app.js` and `styles.css`.
-
-## Refresh SEC Data
+## Data Update Scripts
 
 From project root:
 
@@ -58,19 +82,19 @@ From project root:
 cd "/Users/coattail/Documents/New project/guru-13f-monitor"
 ```
 
-### Fetch full history
+Fetch full filing history:
 
 ```bash
 /usr/bin/python3 scripts/fetch_sec_13f_history.py
 ```
 
-### Fetch latest snapshot
+Fetch latest filing snapshot:
 
 ```bash
 /usr/bin/python3 scripts/fetch_sec_13f_latest.py
 ```
 
-### Enrich holdings (ticker/share normalization helpers)
+Run enrichment (ticker and holdings normalization helpers):
 
 ```bash
 /usr/bin/python3 scripts/enrich_sec_13f_holdings.py
@@ -95,23 +119,19 @@ guru-13f-monitor/
     avatars/
 ```
 
-## Notes and Caveats
+## Troubleshooting
 
-- 13F data is filing-based and can include reporting lags.
-- Some filings contain multiple share classes, notes, warrants, or ADR forms for one issuer.
-- The frontend includes de-duplication and label disambiguation logic for recurring SEC naming/ticker inconsistencies.
-- Historic filing value units can differ across periods; normalization logic is applied in the app.
+- Page shows old UI after edits:
+  - Hard refresh in browser (`Cmd + Shift + R` on macOS)
+  - Confirm version query params in `index.html` (`styles.css?v=...`, `app.js?v=...`)
+- Wrong local project appears:
+  - Ensure server is started from this project directory
+  - Verify the URL/port matches the running server
+- SEC fetch issues (rate limit/network):
+  - Re-run scripts after a short cooldown
 
-## Common Troubleshooting
+## Notes
 
-- Page does not update after code changes:
-  - Hard refresh (`Cmd + Shift + R`)
-  - Confirm `index.html` references updated `?v=...` versions
-- Wrong project appears on `127.0.0.1`:
-  - Make sure you started this project directory, not another local server
-- SEC fetch script rate-limit or network retries:
-  - Re-run script and allow cooldown between runs
-
-## Intended Audience
-
-- Investors and research users who want a practical, visual monitor for major managers' 13F holdings and changes over time.
+- 13F is filing-based and inherently delayed versus real-time positions.
+- Share classes, ADRs, and naming variants are normalized in the frontend/pipeline as much as possible.
+- Historical SEC filing value scales may differ in old records; normalization is handled in app logic.
