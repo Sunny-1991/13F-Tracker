@@ -22,6 +22,9 @@ MANAGERS = [
     {"id": "pershing", "name": "Pershing Square", "org": "Pershing Square Capital Management, L.P.", "cik": 1336528},
     {"id": "himalaya", "name": "Himalaya", "org": "Himalaya Capital Management LLC", "cik": 1709323},
     {"id": "tigerglobal", "name": "Tiger Global", "org": "Tiger Global Management LLC", "cik": 1167483},
+    {"id": "gates", "name": "Gates Foundation", "org": "Gates Foundation Trust", "cik": 1166559},
+    {"id": "elliott", "name": "Elliott", "org": "Elliott Investment Management, L.P.", "cik": 1791786},
+    {"id": "tci", "name": "TCI", "org": "TCI Fund Management Ltd", "cik": 1647251},
 ]
 
 

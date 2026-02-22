@@ -12,6 +12,7 @@ import datetime as dt
 import json
 import os
 import pathlib
+import re
 import time
 import urllib.error
 import urllib.request
@@ -22,7 +23,7 @@ USER_AGENT = "guru13f-monitor/1.0 (contact: local-dev@example.com)"
 BASE_DIR = pathlib.Path(__file__).resolve().parents[1]
 OUTPUT_PATH = BASE_DIR / "data" / "sec-13f-history.json"
 
-MIN_REPORT_DATE = dt.date(2016, 1, 1)
+MIN_REPORT_DATE = dt.date(1999, 1, 1)
 
 MANAGERS = [
     {
@@ -97,6 +98,30 @@ MANAGERS = [
         "disclosure": "13F-HR",
         "color": "#6b3b1f",
     },
+    {
+        "id": "gates",
+        "name": "Gates Foundation",
+        "org": "Gates Foundation Trust",
+        "cik": 1166559,
+        "disclosure": "13F-HR",
+        "color": "#2e6f97",
+    },
+    {
+        "id": "elliott",
+        "name": "Elliott",
+        "org": "Elliott Investment Management, L.P.",
+        "cik": 1791786,
+        "disclosure": "13F-HR",
+        "color": "#7a3b79",
+    },
+    {
+        "id": "tci",
+        "name": "TCI",
+        "org": "TCI Fund Management Ltd",
+        "cik": 1647251,
+        "disclosure": "13F-HR",
+        "color": "#1f5d5b",
+    },
 ]
 
 
@@ -138,7 +163,14 @@ def fetch_bytes(url: str) -> bytes:
 
             time.sleep(0.12)
             return data
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, RuntimeError) as exc:
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise
+            last_error = exc
+            wait_seconds = min(12, 1.6 * attempt)
+            print(f"[retry {attempt}] {url} -> {exc}; wait {wait_seconds:.1f}s")
+            time.sleep(wait_seconds)
+        except (urllib.error.URLError, TimeoutError, RuntimeError) as exc:
             last_error = exc
             wait_seconds = min(12, 1.6 * attempt)
             print(f"[retry {attempt}] {url} -> {exc}; wait {wait_seconds:.1f}s")
@@ -235,6 +267,7 @@ def parse_info_table_xml(xml_bytes: bytes) -> list[dict]:
         cusip = (item.findtext(f"{ns}cusip") or "").strip()
         value_txt = (item.findtext(f"{ns}value") or "0").replace(",", "").strip()
         title_of_class = (item.findtext(f"{ns}titleOfClass") or "").strip()
+        shares_txt = (item.findtext(f"{ns}shrsOrPrnAmt/{ns}sshPrnamt") or "").replace(",", "").strip()
         code = cusip or issuer
         if not code:
             continue
@@ -242,6 +275,12 @@ def parse_info_table_xml(xml_bytes: bytes) -> list[dict]:
             value_usd = int(value_txt)
         except ValueError:
             continue
+        shares = None
+        if shares_txt:
+            try:
+                shares = int(float(shares_txt))
+            except ValueError:
+                shares = None
 
         if code not in aggregated:
             aggregated[code] = {
@@ -250,8 +289,155 @@ def parse_info_table_xml(xml_bytes: bytes) -> list[dict]:
                 "issuer": issuer,
                 "title_of_class": title_of_class,
                 "value_usd": 0,
+                "shares": 0 if shares is not None else None,
             }
         aggregated[code]["value_usd"] += value_usd
+        if shares is not None:
+            if aggregated[code]["shares"] is None:
+                aggregated[code]["shares"] = 0
+            aggregated[code]["shares"] += shares
+
+    holdings = list(aggregated.values())
+    holdings.sort(key=lambda x: x["value_usd"], reverse=True)
+    total_value = sum(x["value_usd"] for x in holdings)
+    for h in holdings:
+        h["weight"] = (h["value_usd"] / total_value) if total_value > 0 else 0
+    return holdings
+
+
+def split_issuer_and_class(prefix: str) -> tuple[str, str]:
+    text = " ".join((prefix or "").split()).strip()
+    if not text:
+        return "", ""
+
+    class_suffixes = [
+        "SPONSORED ADR",
+        "SPON ADR",
+        "CL A",
+        "CL B",
+        "CL C",
+        "CL D",
+        "CLASS A",
+        "CLASS B",
+        "CLASS C",
+        "CLASS D",
+        "PREF SHS",
+        "PFD",
+        "ADR",
+        "COM",
+        "ORD",
+        "UNIT",
+        "SHS",
+        "NOTE",
+    ]
+    upper = text.upper()
+    for suffix in class_suffixes:
+        if upper.endswith(f" {suffix}") or upper == suffix:
+            title = suffix
+            issuer = text[: -len(suffix)].strip()
+            if not issuer:
+                issuer = text
+            return issuer, title
+    return text, ""
+
+
+def parse_info_table_legacy(raw_bytes: bytes) -> list[dict]:
+    text = raw_bytes.decode("utf-8", "ignore")
+    table_blocks = re.findall(r"<TABLE>(.*?)</TABLE>", text, flags=re.IGNORECASE | re.DOTALL)
+    if not table_blocks:
+        upper = text.upper()
+        if "NAME OF ISSUER" in upper and "CUSIP" in upper:
+            table_blocks = [text]
+
+    aggregated: dict[str, dict] = {}
+
+    def add_row(prefix: str, cusip: str, value_str: str, shares_str: str) -> None:
+        clean_prefix = " ".join((prefix or "").replace(".", " ").split()).strip()
+        issuer, title_of_class = split_issuer_and_class(clean_prefix)
+        code = (cusip or issuer or "").strip()
+        if not code:
+            return
+        try:
+            value_usd = int(value_str.replace(",", ""))
+        except ValueError:
+            return
+        shares = None
+        try:
+            shares = int(float(shares_str.replace(",", "")))
+        except ValueError:
+            shares = None
+
+        if code not in aggregated:
+            aggregated[code] = {
+                "code": code,
+                "cusip": cusip,
+                "issuer": issuer or code,
+                "title_of_class": title_of_class,
+                "value_usd": 0,
+                "shares": 0 if shares is not None else None,
+            }
+        aggregated[code]["value_usd"] += value_usd
+        if shares is not None:
+            if aggregated[code]["shares"] is None:
+                aggregated[code]["shares"] = 0
+            aggregated[code]["shares"] += shares
+
+    full_row_pattern = re.compile(r"^(?P<prefix>.+?)\s+(?P<cusip>[0-9A-Z]{9})\s+(?P<value>[0-9,]+)\s+(?P<shares>[0-9,]+)\b")
+    continuation_pattern = re.compile(r"^(?P<value>[0-9,]+)\s+(?P<shares>[0-9,]+)\b")
+
+    for block in table_blocks:
+        pending_name_parts: list[str] = []
+        current_security: tuple[str, str] | None = None
+
+        for raw_line in block.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            upper = line.upper()
+            if line.startswith("<"):
+                continue
+            if upper.startswith("NAME OF ISSUER") or upper.startswith("VOTING AUTHORITY"):
+                pending_name_parts = []
+                continue
+            if upper.startswith("MARKET VALUE") or upper.startswith("SHARES OR"):
+                pending_name_parts = []
+                continue
+            if upper.startswith("<S>") or upper.startswith("REPORT SUMMARY"):
+                pending_name_parts = []
+                continue
+            if upper.startswith("LIST OF OTHER INCLUDED MANAGERS"):
+                pending_name_parts = []
+                continue
+            if upper.startswith("COLUMN "):
+                pending_name_parts = []
+                continue
+            if "INVESTMENT" in upper and "DISCRETION" in upper:
+                pending_name_parts = []
+                continue
+            if re.fullmatch(r"[-=*_\s]+", line):
+                pending_name_parts = []
+                continue
+
+            normalized_line = re.sub(r"\b([0-9A-Z]{6})\s+([0-9A-Z]{2})\s+([0-9A-Z])\b", r"\1\2\3", line.upper())
+            full_match = full_row_pattern.match(normalized_line)
+            if full_match:
+                combined_prefix = " ".join(
+                    part for part in [*pending_name_parts, full_match.group("prefix")] if part
+                )
+                cusip = full_match.group("cusip")
+                value_str = full_match.group("value")
+                shares_str = full_match.group("shares")
+                add_row(combined_prefix, cusip, value_str, shares_str)
+                current_security = (combined_prefix, cusip)
+                pending_name_parts = []
+                continue
+
+            cont_match = continuation_pattern.match(normalized_line)
+            if cont_match and current_security:
+                add_row(current_security[0], current_security[1], cont_match.group("value"), cont_match.group("shares"))
+                continue
+
+            pending_name_parts.append(line)
 
     holdings = list(aggregated.values())
     holdings.sort(key=lambda x: x["value_usd"], reverse=True)
@@ -288,6 +474,31 @@ def load_holding_list(cik: int, accession: str) -> tuple[str, list[dict]]:
         if score > best_score:
             best_score = score
             best_xml_name = xml_name
+            best_holdings = holdings
+
+    if best_holdings:
+        return best_xml_name, best_holdings
+
+    text_candidates = [
+        x.get("name", "")
+        for x in items
+        if x.get("name", "").lower().endswith((".txt", ".htm", ".html"))
+        and "index-headers" not in x.get("name", "").lower()
+        and not x.get("name", "").lower().endswith("-index.html")
+    ]
+    for text_name in text_candidates:
+        text_url = f"https://www.sec.gov/Archives/edgar/data/{cik_nozero}/{accession_nodash}/{text_name}"
+        try:
+            holdings = parse_info_table_legacy(fetch_bytes(text_url))
+        except Exception:
+            holdings = []
+        if not holdings:
+            continue
+        total_value = sum(h["value_usd"] for h in holdings)
+        score = (len(holdings), total_value)
+        if score > best_score:
+            best_score = score
+            best_xml_name = text_name
             best_holdings = holdings
 
     return best_xml_name, best_holdings

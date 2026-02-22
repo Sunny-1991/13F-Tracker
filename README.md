@@ -10,6 +10,7 @@ It is built as a static web app (`index.html`, `app.js`, `styles.css`) with loca
 
 - Professional card grid for institution selection (3x3 layout)
 - Founder avatars and style labels for quick recognition
+- Catalog quick filter by institution, manager, style tag, or major holding ticker
 - Popular Holdings Treemap:
   - Interactive hover/click behavior
   - Heat-based block sizing (coverage + average weight + aggregated value)
@@ -36,7 +37,7 @@ It is built as a static web app (`index.html`, `app.js`, `styles.css`) with loca
 ## Data Coverage and Source
 
 - Source: SEC EDGAR Form 13F filings
-- Coverage target: quarterly history from 2016 onward (by institution availability)
+- Coverage target: quarterly history from 1999 onward (by institution availability)
 - Main data files:
   - `data/sec-13f-history.json`
   - `data/sec-13f-latest.json`

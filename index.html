@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260220-ui102" />
+    <link rel="stylesheet" href="./styles.css?v=20260223-ui107" />
   </head>
   <body>
     <div class="site-bg"></div>
@@ -24,6 +24,19 @@
             <p class="hero-desc">Select an institution to view 13F holdings and quarterly changes.</p>
           </div>
           <div class="catalog-tools">
+            <div class="catalog-search">
+              <input
+                id="catalogSearchInput"
+                class="catalog-search-input"
+                type="search"
+                placeholder="Filter by institution, manager, style, or ticker"
+                aria-label="Filter institutions by institution, manager, style, or ticker"
+                autocomplete="off"
+              />
+              <button id="catalogSearchClearBtn" class="catalog-search-clear" type="button" hidden>
+                Clear
+              </button>
+            </div>
             <p id="catalogMeta" class="catalog-meta"></p>
           </div>
           <div id="institutionGrid" class="institution-grid"></div>
@@ -102,6 +115,6 @@
     </footer>
 
     <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="./app.js?v=20260220-ui106"></script>
+    <script src="./app.js?v=20260223-ui130"></script>
   </body>
 </html>

@@ -1,5 +1,6 @@
-const START_YEAR = 2016;
-const END_YEAR = 2025;
+const START_YEAR = 1999;
+const MIN_END_YEAR = 2025;
+const END_YEAR = Math.max(MIN_END_YEAR, new Date().getFullYear());
 
 function createQuarterRange(startYear, endYear) {
   const quarters = [];
@@ -110,6 +111,25 @@ function formatDeltaByUnit(valueInBillion, unit) {
   const sign = valueInBillion > 0 ? "+" : "-";
   const absValue = round(Math.abs(valueInBillion) / unit.divisor, unit.digits);
   return `${sign}${absValue}${unit.short}`;
+}
+
+function formatUsdPerShare(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "--";
+  }
+  const abs = Math.abs(value);
+  let digits = 2;
+  if (abs < 1) {
+    digits = 4;
+  } else if (abs < 10) {
+    digits = 3;
+  } else if (abs >= 1000) {
+    digits = 1;
+  }
+  return `$${value.toLocaleString(undefined, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}`;
 }
 
 function formatQuarter(quarter) {
@@ -281,10 +301,86 @@ function looksLikeUsTicker(value) {
 }
 
 const CUSIP_TICKER_OVERRIDES = {
+  "037833100": "AAPL",
+  "023135106": "AMZN",
+  "025816109": "AXP",
+  "00724F101": "ADBE",
+  "01609W102": "BABA",
+  "02005N100": "ALLY",
   "02079K107": "GOOG",
   "02079K305": "GOOGL",
+  "03831W108": "APP",
+  "038222105": "AMAT",
+  "084670702": "BRK-B",
+  "09857L108": "BKNG",
+  "11135F101": "AVGO",
+  "11271J107": "BN",
+  "136375102": "CNI",
+  "14040H105": "COF",
+  "149123101": "CAT",
+  "166764100": "CVX",
+  "172573107": "CRCL",
+  "191216100": "KO",
   "98954M101": "ZG",
   "98954M200": "Z",
+  "21036P108": "STZ",
+  "219948106": "CPAY",
+  "22266T109": "CPNG",
+  "23918K108": "DVA",
+  "244199105": "DE",
+  "25754A201": "DPZ",
+  "278865100": "ECL",
+  "369604301": "GE",
+  "31428X106": "FDX",
+  "36828A101": "GEV",
+  "422806208": "HEI",
+  "43300A203": "HLT",
+  "44267T102": "HHH",
+  "464287200": "IVV",
+  "500754106": "KHC",
+  "512807306": "LRCX",
+  "501044101": "KR",
+  "526057104": "LEN",
+  "546347105": "LPX",
+  "57636Q104": "MA",
+  "594918104": "MSFT",
+  "615369105": "MCO",
+  "650111107": "NYT",
+  "674599105": "OXY",
+  "67066G104": "NVDA",
+  "670346105": "NUE",
+  "68389X105": "ORCL",
+  "718546104": "PSX",
+  "722304102": "PDD",
+  "72352L106": "PINS",
+  "73278L105": "POOL",
+  "75734B100": "RDDT",
+  "76131D103": "QSR",
+  "78409V104": "SPGI",
+  "78462F103": "SPY",
+  "79466L302": "CRM",
+  "81762P102": "NOW",
+  "81141R100": "SE",
+  "829933100": "SIRI",
+  "852234103": "XYZ",
+  "867224107": "SU",
+  "874054109": "TTWO",
+  "91324P102": "UNH",
+  "90353T100": "UBER",
+  "912932100": "UNIT",
+  "922475108": "VEEV",
+  "92343E102": "VRSN",
+  "92826C839": "V",
+  "931142103": "WMT",
+  "94106L109": "WM",
+  "94106B101": "WCN",
+  "98138H101": "WDAY",
+  "98980G102": "ZS",
+  H1467J104: "CB",
+  G0403H108: "AON",
+  G3643J108: "FLUT",
+  G4124C109: "GRAB",
+  N3168P101: "FER",
   "G5480U104": "LBTYA",
   "G5480U120": "LBTYK",
   "G5480U138": "LILAA",
@@ -321,6 +417,21 @@ const CUSIP_TICKER_OVERRIDES = {
   N31738102: "FCAU",
   "339041105": "FLT",
   "23331A109": "DHI",
+  "27579R104": "EWBC",
+  "30212P303": "EXPE",
+  "30063P105": "EXAS",
+  "26210C104": "DBX",
+  "20717M103": "CFLT",
+  "15677J108": "DAY",
+  "651639106": "NEM",
+  "03945R102": "ACHR",
+  "110448107": "BTI",
+  G8267P108: "SW",
+  "478160104": "JNJ",
+  "70450Y103": "PYPL",
+  "87256C101": "TKO",
+  "02209S103": "MO",
+  "254687106": "DIS",
   "85207U105": "S",
   "053015103": "ADP",
   "46185L103": "NVTA",
@@ -349,6 +460,7 @@ const CUSIP_TICKER_OVERRIDES = {
   "73935A104": "QQQ",
   G11196105: "BHVN",
   "96209A104": "WE",
+  N07059210: "ASML",
   "26886C107": "EQRX",
   "983919101": "XLNX",
   "017175100": "Y",
@@ -461,6 +573,53 @@ const ISSUER_TICKER_OVERRIDES = {
   "AURORA ACQUISITION": "AURC",
 };
 
+const ISSUER_TICKER_KEYWORD_OVERRIDES = Object.entries({
+  APPLE: "AAPL",
+  NVIDIA: "NVDA",
+  MICROSOFT: "MSFT",
+  "AMAZON COM": "AMZN",
+  "AMERICAN EXPRESS": "AXP",
+  "BANK AMERICA": "BAC",
+  "BK OF AMERICA": "BAC",
+  "COCA COLA": "KO",
+  CHEVRON: "CVX",
+  MOODYS: "MCO",
+  "BERKSHIRE HATHAWAY": "BRK-B",
+  "KRAFT HEINZ": "KHC",
+  "S&P GLOBAL": "SPGI",
+  "CANADIAN NATL RY": "CNI",
+  "META PLATFORMS": "META",
+  CATERPILLAR: "CAT",
+  DAVITA: "DVA",
+  "SPDR S&P 500 ETF": "SPY",
+  "INVESCO QQQ": "QQQ",
+  MASTERCARD: "MA",
+  "COINBASE GLOBAL": "COIN",
+  "PALANTIR TECHNOLOGIES": "PLTR",
+  "ROBINHOOD MARKETS": "HOOD",
+  "TEMPUS AI": "TEM",
+  "TAIWAN SEMICONDUCTOR": "TSM",
+  "ADVANCED MICRO DEVICES": "AMD",
+  "APOLLO GLOBAL": "APO",
+  "HILTON WORLDWIDE": "HLT",
+  "BROADCOM INC": "AVGO",
+  "REDDIT INC": "RDDT",
+  "SEA LTD": "SE",
+  "SHOPIFY INC": "SHOP",
+  "ROKU INC": "ROKU",
+  "PINTEREST INC": "PINS",
+  "BLOCK INC": "XYZ",
+  "SALESFORCE INC": "CRM",
+  "HEWLETT PACKARD ENTERPRISE": "HPE",
+  "TERADYNE INC": "TER",
+  "WORKDAY INC": "WDAY",
+  "ORACLE CORP": "ORCL",
+  "APPLIED MATLS": "AMAT",
+  "ZSCALER INC": "ZS",
+  "BOOKING HOLDINGS": "BKNG",
+  FERROVIAL: "FER",
+}).sort((a, b) => b[0].length - a[0].length);
+
 const ISSUER_TICKER_STOPWORDS = new Set([
   "INC",
   "INCORPORATED",
@@ -540,6 +699,18 @@ function normalizeIssuerForTicker(value) {
   return tokens.join(" ").trim();
 }
 
+function tickerFromIssuerKeyword(normalizedIssuer) {
+  if (!normalizedIssuer) {
+    return "";
+  }
+  for (const [keyword, ticker] of ISSUER_TICKER_KEYWORD_OVERRIDES) {
+    if (normalizedIssuer.includes(keyword)) {
+      return ticker;
+    }
+  }
+  return "";
+}
+
 function bestTickerFromVotes(voteMap) {
   const candidates = Array.from(voteMap.entries());
   if (!candidates.length) {
@@ -567,6 +738,10 @@ function buildDerivedSecTickerMaps(managers) {
         const code = (item.code || item.cusip || "").trim().toUpperCase();
         const rawTicker = (item.ticker || "").trim().toUpperCase().replace(/\./g, "-");
         const normalizedCode = code.replace(/\./g, "-");
+        const issuerKey = normalizeIssuerForTicker(item.issuer || "");
+        const issuerOverrideTicker = issuerKey
+          ? ISSUER_TICKER_OVERRIDES[issuerKey] || tickerFromIssuerKeyword(issuerKey) || ""
+          : "";
         const seededTicker = CUSIP_TICKER_OVERRIDES[code] || "";
         const ticker = seededTicker
           ? seededTicker
@@ -574,7 +749,7 @@ function buildDerivedSecTickerMaps(managers) {
             ? rawTicker
             : looksLikeUsTicker(normalizedCode)
               ? normalizedCode
-              : "";
+              : issuerOverrideTicker;
         if (!ticker) {
           return;
         }
@@ -587,7 +762,6 @@ function buildDerivedSecTickerMaps(managers) {
           codeVotes.set(ticker, (codeVotes.get(ticker) || 0) + 1);
         }
 
-        const issuerKey = normalizeIssuerForTicker(item.issuer || "");
         if (issuerKey) {
           if (!votesByIssuer.has(issuerKey)) {
             votesByIssuer.set(issuerKey, new Map());
@@ -1116,6 +1290,114 @@ const INVESTOR_DEFS = [
       APP: { start: 0.0, end: 0.029, amp: 0.006, phase: 2.6, appearAt: "2023Q3" },
     },
   },
+  {
+    id: "gates",
+    name: "Gates Foundation",
+    org: "Gates Foundation Trust",
+    disclosure: "13F-HR",
+    color: "#2e6f97",
+    filedLagDays: 46,
+    nav: { avg: 0.017, amp: 0.031, phase: 1.0, shockBeta: 0.9 },
+    aum: { start: 18.2, end: 47.8, amp: 1.8, phase: 0.8, curve: 1.05 },
+    positions: { start: 21, end: 27, amp: 2.1, phase: 1.4, curve: 1.03 },
+    maxTrackedWeight: 0.9,
+    names: {
+      BRKB: "Berkshire Hathaway B",
+      WMT: "Walmart",
+      CNI: "Canadian National Railway",
+      CAT: "Caterpillar",
+      WM: "Waste Management",
+      ECL: "Ecolab",
+      DE: "Deere",
+      FEMSA: "FEMSA",
+      UPS: "UPS",
+      SDGR: "Schrodinger",
+    },
+    weightSpecs: {
+      BRKB: { start: 0.16, end: 0.21, amp: 0.01, phase: 1.2 },
+      WMT: { start: 0.12, end: 0.13, amp: 0.008, phase: 0.9 },
+      CNI: { start: 0.08, end: 0.07, amp: 0.006, phase: 2.1 },
+      CAT: { start: 0.05, end: 0.06, amp: 0.006, phase: 1.4 },
+      WM: { start: 0.04, end: 0.05, amp: 0.005, phase: 2.4 },
+      ECL: { start: 0.03, end: 0.04, amp: 0.005, phase: 1.7 },
+      DE: { start: 0.03, end: 0.03, amp: 0.004, phase: 0.5 },
+      FEMSA: { start: 0.02, end: 0.03, amp: 0.004, phase: 2.8 },
+      UPS: { start: 0.02, end: 0.02, amp: 0.003, phase: 1.9 },
+      SDGR: { start: 0.01, end: 0.02, amp: 0.004, phase: 2.3, appearAt: "2020Q4" },
+    },
+  },
+  {
+    id: "elliott",
+    name: "Elliott",
+    org: "Elliott Investment Management, L.P.",
+    disclosure: "13F-HR",
+    color: "#7a3b79",
+    filedLagDays: 45,
+    nav: { avg: 0.022, amp: 0.04, phase: 0.7, shockBeta: 1.05 },
+    aum: { start: 7.5, end: 18.6, amp: 0.82, phase: 1.5, curve: 1.1 },
+    positions: { start: 31, end: 62, amp: 4.1, phase: 1.0, curve: 1.06 },
+    maxTrackedWeight: 0.9,
+    names: {
+      SAP: "SAP",
+      HPE: "HP Enterprise",
+      PFE: "Pfizer",
+      SBUX: "Starbucks",
+      NRG: "NRG Energy",
+      PYPL: "PayPal",
+      WDC: "Western Digital",
+      DOW: "Dow",
+      BDX: "Becton Dickinson",
+      CHTR: "Charter Communications",
+    },
+    weightSpecs: {
+      SAP: { start: 0.05, end: 0.12, amp: 0.009, phase: 1.2 },
+      HPE: { start: 0.03, end: 0.08, amp: 0.008, phase: 0.8 },
+      PFE: { start: 0.0, end: 0.07, amp: 0.007, phase: 2.0, appearAt: "2023Q1" },
+      SBUX: { start: 0.02, end: 0.06, amp: 0.007, phase: 2.6 },
+      NRG: { start: 0.0, end: 0.05, amp: 0.007, phase: 1.4, appearAt: "2022Q4" },
+      PYPL: { start: 0.01, end: 0.05, amp: 0.007, phase: 2.3 },
+      WDC: { start: 0.0, end: 0.04, amp: 0.006, phase: 0.9, appearAt: "2024Q1" },
+      DOW: { start: 0.01, end: 0.03, amp: 0.005, phase: 1.8 },
+      BDX: { start: 0.01, end: 0.03, amp: 0.004, phase: 2.9 },
+      CHTR: { start: 0.01, end: 0.03, amp: 0.005, phase: 0.5 },
+    },
+  },
+  {
+    id: "tci",
+    name: "TCI",
+    org: "TCI Fund Management Ltd",
+    disclosure: "13F-HR",
+    color: "#1f5d5b",
+    filedLagDays: 45,
+    nav: { avg: 0.024, amp: 0.043, phase: 1.3, shockBeta: 1.14 },
+    aum: { start: 13.8, end: 44.1, amp: 1.9, phase: 0.7, curve: 1.12 },
+    positions: { start: 12, end: 19, amp: 1.5, phase: 2.0, curve: 1.04 },
+    maxTrackedWeight: 0.9,
+    names: {
+      GE: "GE Aerospace",
+      MSFT: "Microsoft",
+      V: "Visa",
+      MA: "Mastercard",
+      GOOG: "Alphabet C",
+      SPGI: "S&P Global",
+      RELX: "RELX",
+      CNI: "Canadian National Railway",
+      FICO: "Fair Isaac",
+      META: "Meta",
+    },
+    weightSpecs: {
+      GE: { start: 0.08, end: 0.18, amp: 0.01, phase: 1.6 },
+      MSFT: { start: 0.11, end: 0.16, amp: 0.008, phase: 0.8 },
+      V: { start: 0.08, end: 0.12, amp: 0.008, phase: 2.2 },
+      MA: { start: 0.07, end: 0.11, amp: 0.007, phase: 1.2 },
+      GOOG: { start: 0.05, end: 0.09, amp: 0.007, phase: 2.7 },
+      SPGI: { start: 0.03, end: 0.07, amp: 0.006, phase: 0.6 },
+      RELX: { start: 0.02, end: 0.06, amp: 0.006, phase: 1.9 },
+      CNI: { start: 0.03, end: 0.05, amp: 0.005, phase: 2.4 },
+      FICO: { start: 0.0, end: 0.04, amp: 0.005, phase: 1.4, appearAt: "2021Q1" },
+      META: { start: 0.02, end: 0.04, amp: 0.005, phase: 0.9 },
+    },
+  },
 ];
 
 const MANAGER_BY_ID = {
@@ -1128,6 +1410,9 @@ const MANAGER_BY_ID = {
   pershing: "Bill Ackman",
   himalaya: "Li Lu",
   tigerglobal: "Chase Coleman",
+  gates: "Bill Gates",
+  elliott: "Paul Singer",
+  tci: "Chris Hohn",
 };
 
 INVESTOR_DEFS.forEach((def) => {
@@ -1143,6 +1428,7 @@ const state = {
   quarter: LATEST_QUARTER,
   expanded: new Set(),
   view: "list",
+  catalogSearchQuery: "",
   catalogTreemapItemsByKey: new Map(),
   catalogTreemapCoveredInstitutions: 0,
   catalogTreemapFocusKey: "",
@@ -1161,6 +1447,8 @@ const elements = {
   institutionGrid: document.querySelector("#institutionGrid"),
   institutionTreemapMeta: document.querySelector("#institutionTreemapMeta"),
   institutionTreemap: document.querySelector("#institutionTreemap"),
+  catalogSearchInput: document.querySelector("#catalogSearchInput"),
+  catalogSearchClearBtn: document.querySelector("#catalogSearchClearBtn"),
   catalogMeta: document.querySelector("#catalogMeta"),
   backToListBtn: document.querySelector("#backToListBtn"),
   detailOrgTitle: document.querySelector("#detailOrgTitle"),
@@ -1185,6 +1473,9 @@ const STYLE_TAG_BY_ID = {
   pershing: "Activist",
   himalaya: "Concentrated",
   tigerglobal: "Growth",
+  gates: "Quality",
+  elliott: "Event-Driven",
+  tci: "Focused",
 };
 
 const OFFICIAL_WEBSITE_BY_ID = {
@@ -1196,6 +1487,9 @@ const OFFICIAL_WEBSITE_BY_ID = {
   pershing: "https://www.persq.com/",
   himalaya: "https://www.himcap.com/",
   tigerglobal: "https://www.tigerglobal.com/",
+  gates: "https://www.gatesfoundation.org/",
+  elliott: "https://www.elliottmgmt.com/",
+  tci: "https://www.tcifund.com/",
 };
 
 const STYLE_RADAR_AXES = [
@@ -1207,15 +1501,31 @@ const STYLE_RADAR_AXES = [
   { key: "energy", label: "Energy & Utilities" },
   { key: "other", label: "Other" },
 ];
+const STYLE_BUCKET_BENCHMARK_PROXY = "__benchmark_proxy__";
 
 const STYLE_BUCKET_BY_TICKER = {
   AAPL: "technology",
   MSFT: "technology",
   NVDA: "technology",
+  INTC: "technology",
+  ORCL: "technology",
+  CRM: "technology",
+  NOW: "technology",
+  ADBE: "technology",
+  AMAT: "technology",
+  WDAY: "technology",
+  PINS: "technology",
+  SYM: "technology",
+  APP: "technology",
+  RBLX: "technology",
+  TEM: "technology",
+  CFLT: "technology",
+  DBX: "technology",
+  DAY: "technology",
+  ASML: "technology",
   GOOGL: "technology",
   GOOG: "technology",
   META: "technology",
-  ADBE: "technology",
   AVGO: "technology",
   LRCX: "technology",
   TSM: "technology",
@@ -1224,16 +1534,40 @@ const STYLE_BUCKET_BY_TICKER = {
   PLTR: "technology",
   ARM: "technology",
   CRWD: "technology",
-  APP: "technology",
   U: "technology",
   ZM: "technology",
   PATH: "technology",
+  QQQ: "technology",
+  VRSN: "technology",
+  PYPL: "technology",
+  HPE: "technology",
+  ZS: "technology",
+  DIS: "consumer",
+  STZ: "consumer",
+  DPZ: "consumer",
+  KR: "consumer",
+  BTI: "consumer",
+  MO: "consumer",
+  TKO: "consumer",
 
   BAC: "financials",
   AXP: "financials",
+  V: "financials",
+  MA: "financials",
+  SPGI: "financials",
+  CB: "financials",
+  BRK: "financials",
+  XLF: "financials",
+  XYZ: "financials",
+  NU: "financials",
+  CPAY: "financials",
+  INTR: "financials",
+  KLAR: "financials",
+  GPN: "financials",
+  ALLY: "financials",
+  AON: "financials",
   COIN: "financials",
   MCO: "financials",
-  XLF: "financials",
   BN: "financials",
   BRKB: "financials",
   "BRK-B": "financials",
@@ -1259,14 +1593,20 @@ const STYLE_BUCKET_BY_TICKER = {
   UBER: "consumer",
   QSR: "consumer",
   HLT: "consumer",
+  FLUT: "consumer",
+  CPNG: "consumer",
+  SPOT: "consumer",
+  WMT: "consumer",
+  BKNG: "consumer",
+  RDDT: "consumer",
+  WBTN: "consumer",
+  GRAB: "consumer",
   HTZ: "consumer",
   CROX: "consumer",
   SE: "consumer",
   TTWO: "consumer",
-  BKNG: "consumer",
   SIRI: "consumer",
   SHOP: "consumer",
-  RDDT: "consumer",
   TMUS: "consumer",
   DTEGY: "consumer",
   SEG: "consumer",
@@ -1274,14 +1614,45 @@ const STYLE_BUCKET_BY_TICKER = {
   DVA: "healthcare",
   CRSP: "healthcare",
   NTLA: "healthcare",
+  JNJ: "healthcare",
+  TWST: "healthcare",
+  EXAS: "healthcare",
 
   GEV: "industrials",
-  HHH: "industrials",
+  GE: "industrials",
+  CNI: "industrials",
+  CP: "industrials",
+  CAT: "industrials",
+  DE: "industrials",
+  WM: "industrials",
+  WCN: "industrials",
+  ECL: "industrials",
+  FDX: "industrials",
+  HEI: "industrials",
   TER: "industrials",
+  FER: "industrials",
+  NUE: "industrials",
+  LPX: "industrials",
+  XLI: "industrials",
+  SW: "industrials",
+  ACHR: "industrials",
+  HHH: "industrials",
+
+  SPY: STYLE_BUCKET_BENCHMARK_PROXY,
+  IVV: STYLE_BUCKET_BENCHMARK_PROXY,
+  VOO: STYLE_BUCKET_BENCHMARK_PROXY,
+  VTI: STYLE_BUCKET_BENCHMARK_PROXY,
 
   CVX: "energy",
   OXY: "energy",
   XOM: "energy",
+  SU: "energy",
+  PSX: "energy",
+  NEM: "energy",
+  XLE: "energy",
+  GLD: "energy",
+  GDX: "energy",
+  IAU: "energy",
 };
 
 const STYLE_BUCKET_KEYWORDS = [
@@ -1298,9 +1669,9 @@ const STYLE_BUCKET_KEYWORDS = [
       "ASSET MGMT",
       "INVESTMENT",
       "BROKER",
-      "TRUST",
-      "ETF",
-      "FUND",
+      "EXCHANGE",
+      "BANC",
+      "MORTGAGE",
     ],
   },
   {
@@ -1313,6 +1684,7 @@ const STYLE_BUCKET_KEYWORDS = [
       "BIO ",
       "MEDICAL",
       "LIFE SCI",
+      "SCIENCE",
       "DIAGNOST",
       "HOSPITAL",
       "DRUG",
@@ -1331,6 +1703,11 @@ const STYLE_BUCKET_KEYWORDS = [
       "SOLAR",
       "RENEWABLE",
       "PIPELINE",
+      "MINING",
+      "MINER",
+      "METAL",
+      "GOLD",
+      "SILVER",
     ],
   },
   {
@@ -1348,6 +1725,16 @@ const STYLE_BUCKET_KEYWORDS = [
       "INFRASTRUCT",
       "AIRLINES",
       "SHIPPING",
+      "AIRLS",
+      "RAILWAY",
+      "RAILROAD",
+      " RY ",
+      "FREIGHT",
+      "WASTE",
+      "PACKAGING",
+      "MACHINERY",
+      "PAPER",
+      "AIRC",
     ],
   },
   {
@@ -1367,6 +1754,11 @@ const STYLE_BUCKET_KEYWORDS = [
       "AI ",
       "ARTIFICIAL INTELLIGENCE",
       "PLATFORM",
+      "NETWORK",
+      "CONFLUENT",
+      "DROPBOX",
+      "COREWEAVE",
+      "DAYFORCE",
     ],
   },
   {
@@ -1388,6 +1780,8 @@ const STYLE_BUCKET_KEYWORDS = [
       "MEDIA",
       "STREAM",
       "LEISURE",
+      "TOBACCO",
+      "SPORT",
     ],
   },
 ];
@@ -1409,7 +1803,7 @@ const STYLE_RADAR_PRIMARY_FILL = "rgba(201, 126, 75, 0.24)";
 const STYLE_RADAR_BENCHMARK_STROKE = "rgb(121, 219, 210)";
 const STYLE_RADAR_BENCHMARK_FILL = "rgba(121, 219, 210, 0.15)";
 
-const AVATAR_CACHE_VERSION = "20260220-ui29";
+const AVATAR_CACHE_VERSION = "20260222-ui36";
 
 const FOUNDER_AVATAR_BY_ID = {
   buffett: "./assets/avatars/buffett.jpg",
@@ -1421,6 +1815,18 @@ const FOUNDER_AVATAR_BY_ID = {
   pershing: "./assets/avatars/pershing.jpg",
   himalaya: "./assets/avatars/himalaya.png",
   tigerglobal: "./assets/avatars/tigerglobal.jpg",
+  gates: "./assets/avatars/gates.jpg",
+  elliott: "./assets/avatars/elliott.jpg",
+  tci: "./assets/avatars/tci.jpg",
+};
+
+const AVATAR_OBJECT_POSITION_BY_ID = {
+  gates: "50% 50%",
+  elliott: "50% 20%",
+};
+
+const AVATAR_OBJECT_FIT_BY_ID = {
+  gates: "cover",
 };
 
 function quarterEndDate(quarter) {
@@ -1507,33 +1913,61 @@ function getSecQuarterFiling(investor, quarter) {
 
 function detectFilingValueScales(filings) {
   const ordered = [...(filings || [])]
-    .filter((filing) => filing && filing.quarter && quarterIndex(filing.quarter) >= 0)
-    .sort((a, b) => quarterIndex(a.quarter) - quarterIndex(b.quarter));
+    .filter((filing) => filing && filing.quarter && parseQuarterToOrder(filing.quarter) >= 0)
+    .sort((a, b) => parseQuarterToOrder(a.quarter) - parseQuarterToOrder(b.quarter));
 
-  const scales = new Map();
-  ordered.forEach((filing) => {
-    scales.set(filing.quarter, 1);
+  const inferred = ordered.map((filing) => {
+    const ratios = (filing.holdings || [])
+      .map((item) => {
+        const value = Number(item.value_usd);
+        const shares = Number(item.shares);
+        if (!Number.isFinite(value) || !Number.isFinite(shares) || value <= 0 || shares <= 0) {
+          return null;
+        }
+        const implied = value / shares;
+        if (!Number.isFinite(implied) || implied <= 0) {
+          return null;
+        }
+        return implied;
+      })
+      .filter((value) => value !== null)
+      .sort((a, b) => a - b);
+
+    if (ratios.length < 3) {
+      return null;
+    }
+
+    const mid = Math.floor(ratios.length / 2);
+    const median = ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2;
+    return median < 1 ? 1000 : 1;
   });
 
-  let pivotIndex = -1;
-  for (let idx = 1; idx < ordered.length; idx += 1) {
-    const prev = Number(ordered[idx - 1].total_value_usd) || 0;
-    const curr = Number(ordered[idx].total_value_usd) || 0;
-    if (prev <= 0 || curr <= 0) {
+  for (let idx = 0; idx < inferred.length; idx += 1) {
+    if (inferred[idx] !== null) {
       continue;
     }
-    const jumpRatio = curr / prev;
-    if (jumpRatio >= 200) {
-      pivotIndex = idx;
-      break;
+    let fallback = null;
+    for (let prev = idx - 1; prev >= 0; prev -= 1) {
+      if (inferred[prev] !== null) {
+        fallback = inferred[prev];
+        break;
+      }
     }
+    if (fallback === null) {
+      for (let next = idx + 1; next < inferred.length; next += 1) {
+        if (inferred[next] !== null) {
+          fallback = inferred[next];
+          break;
+        }
+      }
+    }
+    inferred[idx] = fallback === null ? 1 : fallback;
   }
 
-  if (pivotIndex > 0) {
-    for (let idx = 0; idx < pivotIndex; idx += 1) {
-      scales.set(ordered[idx].quarter, 1000);
-    }
-  }
+  const scales = new Map();
+  ordered.forEach((filing, idx) => {
+    scales.set(filing.quarter, inferred[idx] || 1);
+  });
 
   return scales;
 }
@@ -1549,6 +1983,9 @@ function snapshotFromSecFiling(filing) {
       const rawTicker = (item.ticker || "").trim().toUpperCase().replace(/\./g, "-");
       const codeAsTicker = code.toUpperCase().replace(/\./g, "-");
       const overrideTicker = CUSIP_TICKER_OVERRIDES[normalizedCode] || "";
+      const issuerOverrideTicker = normalizedIssuer
+        ? ISSUER_TICKER_OVERRIDES[normalizedIssuer] || tickerFromIssuerKeyword(normalizedIssuer) || ""
+        : "";
       const ticker = overrideTicker
         ? overrideTicker
         : looksLikeUsTicker(rawTicker)
@@ -1556,7 +1993,7 @@ function snapshotFromSecFiling(filing) {
           : looksLikeUsTicker(codeAsTicker)
             ? codeAsTicker
             : state.derivedSecTickerByCode.get(normalizedCode) ||
-                ISSUER_TICKER_OVERRIDES[normalizedIssuer] ||
+                issuerOverrideTicker ||
                 state.derivedSecTickerByIssuer.get(normalizedIssuer) ||
                 "";
       return {
@@ -1602,6 +2039,241 @@ function getHoldingShares(snapshot, holdingKey) {
     return null;
   }
   return target.shares;
+}
+
+function getHoldingUnitPrice(holding) {
+  if (!holding || typeof holding.shares !== "number" || holding.shares <= 0) {
+    return null;
+  }
+  const valueInBillion = Number(holding.value);
+  if (!Number.isFinite(valueInBillion) || valueInBillion <= 0) {
+    return null;
+  }
+  return (valueInBillion * 1e9) / holding.shares;
+}
+
+function parseQuarterToOrder(quarter) {
+  if (typeof quarter !== "string") {
+    return -1;
+  }
+  const matched = quarter.match(/^(\d{4})Q([1-4])$/);
+  if (!matched) {
+    return -1;
+  }
+  const year = Number(matched[1]);
+  const q = Number(matched[2]);
+  return year * 4 + q;
+}
+
+function detectLikelyShareSplitMultiplier(prevShares, currShares, prevUnitPrice, currUnitPrice) {
+  if (
+    !Number.isFinite(prevShares) ||
+    !Number.isFinite(currShares) ||
+    !Number.isFinite(prevUnitPrice) ||
+    !Number.isFinite(currUnitPrice) ||
+    prevShares <= 0 ||
+    currShares <= 0 ||
+    prevUnitPrice <= 0 ||
+    currUnitPrice <= 0
+  ) {
+    return 1;
+  }
+
+  const shareRatio = currShares / prevShares;
+  const priceRatio = currUnitPrice / prevUnitPrice;
+  const splitCandidates = [2, 3, 4, 5, 6, 8, 10, 1 / 2, 1 / 3, 1 / 4, 1 / 5, 1 / 6, 1 / 8, 1 / 10];
+  let best = null;
+
+  splitCandidates.forEach((factor) => {
+    const shareDiff = Math.abs(shareRatio - factor) / factor;
+    const expectedPriceRatio = 1 / factor;
+    const priceDiff = Math.abs(priceRatio - expectedPriceRatio) / expectedPriceRatio;
+    const score = shareDiff + priceDiff * 0.65;
+    if (!best || score < best.score) {
+      best = { factor, shareDiff, priceDiff, score };
+    }
+  });
+
+  if (!best) {
+    return 1;
+  }
+
+  if (best.shareDiff <= 0.14 && best.priceDiff <= 0.45) {
+    return best.factor;
+  }
+  return 1;
+}
+
+function buildCostBasisByKey(investor, quarter) {
+  const targetOrder = parseQuarterToOrder(quarter);
+  if (targetOrder < 0) {
+    return new Map();
+  }
+
+  const basisByKey = new Map();
+  const tiny = 1e-9;
+  const quarterMap = state.secHistoryById.get(investor.id);
+  const orderedQuarters = quarterMap
+    ? Array.from(quarterMap.keys())
+        .filter((q) => parseQuarterToOrder(q) >= 0 && parseQuarterToOrder(q) <= targetOrder)
+        .sort((a, b) => parseQuarterToOrder(a) - parseQuarterToOrder(b))
+    : QUARTERS.filter((q) => parseQuarterToOrder(q) <= targetOrder);
+  const firstSeenOrderByKey = new Map();
+  let firstDataOrder = -1;
+
+  orderedQuarters.forEach((q) => {
+    const snapshot = getDisplaySnapshot(investor, q);
+    if (!snapshot || !Array.isArray(snapshot.holdings)) {
+      return;
+    }
+    const qOrder = parseQuarterToOrder(q);
+    const validHoldings = snapshot.holdings.filter((item) => item && item.key !== "OTHER");
+    if (validHoldings.length > 0 && firstDataOrder < 0) {
+      firstDataOrder = qOrder;
+    }
+    validHoldings.forEach((item) => {
+      if (!firstSeenOrderByKey.has(item.key)) {
+        firstSeenOrderByKey.set(item.key, qOrder);
+      }
+    });
+  });
+
+  const isTrackableByFirstSeen = (key) => {
+    if (!key || firstDataOrder < 0) {
+      return false;
+    }
+    const seenOrder = firstSeenOrderByKey.get(key);
+    if (seenOrder === undefined) {
+      return false;
+    }
+    return seenOrder > firstDataOrder;
+  };
+
+  for (let qIdx = 0; qIdx < orderedQuarters.length; qIdx += 1) {
+    const snapshot = getDisplaySnapshot(investor, orderedQuarters[qIdx]);
+    if (!snapshot || !Array.isArray(snapshot.holdings)) {
+      continue;
+    }
+
+    const currentHoldingByKey = new Map();
+    snapshot.holdings.forEach((item) => {
+      if (!item || item.key === "OTHER") {
+        return;
+      }
+      currentHoldingByKey.set(item.key, item);
+    });
+
+    const existingKeys = Array.from(basisByKey.keys());
+    existingKeys.forEach((key) => {
+      if (!currentHoldingByKey.has(key)) {
+        basisByKey.delete(key);
+      }
+    });
+
+    currentHoldingByKey.forEach((item, key) => {
+      const currShares = typeof item.shares === "number" ? item.shares : null;
+      const currUnitPrice = getHoldingUnitPrice(item);
+      const prev = basisByKey.get(key) || null;
+      const prevShares = prev && Number.isFinite(prev.shares) ? prev.shares : 0;
+      const prevCost = prev && Number.isFinite(prev.cost) ? prev.cost : null;
+      const prevTrackable = prev && prev.trackable === true;
+      const prevUnitPrice =
+        prev && Number.isFinite(prev.price) && prev.price > 0
+          ? prev.price
+          : Number.isFinite(prevCost) && prevCost > 0
+            ? prevCost
+            : null;
+
+      if (!Number.isFinite(currShares) || currShares <= tiny || !Number.isFinite(currUnitPrice) || currUnitPrice <= 0) {
+        if (prev && Number.isFinite(prev.cost) && prev.shares > tiny) {
+          basisByKey.set(key, {
+            shares: prev.shares,
+            cost: prev.cost,
+            price: prev.price,
+            trackable: prevTrackable,
+          });
+        }
+        return;
+      }
+
+      if (!prev || prevShares <= tiny || !Number.isFinite(prevCost) || prevCost <= 0) {
+        basisByKey.set(key, {
+          shares: currShares,
+          cost: currUnitPrice,
+          price: currUnitPrice,
+          trackable: isTrackableByFirstSeen(key),
+        });
+        return;
+      }
+
+      const splitMultiplier = detectLikelyShareSplitMultiplier(prevShares, currShares, prevUnitPrice, currUnitPrice);
+      const adjustedPrevShares = prevShares * splitMultiplier;
+      const adjustedPrevCost = prevCost / splitMultiplier;
+      const shareDelta = currShares - adjustedPrevShares;
+
+      if (shareDelta > tiny) {
+        const totalCost = adjustedPrevCost * adjustedPrevShares + currUnitPrice * shareDelta;
+        const nextCost = totalCost / currShares;
+        basisByKey.set(key, {
+          shares: currShares,
+          cost: nextCost,
+          price: currUnitPrice,
+          trackable: prevTrackable,
+        });
+        return;
+      }
+
+      if (currShares <= tiny) {
+        basisByKey.delete(key);
+        return;
+      }
+
+      basisByKey.set(key, {
+        shares: currShares,
+        cost: adjustedPrevCost,
+        price: currUnitPrice,
+        trackable: prevTrackable,
+      });
+    });
+  }
+
+  return basisByKey;
+}
+
+function getHoldingCostViewData(currentHolding, costBasisState) {
+  if (!costBasisState || costBasisState.trackable !== true) {
+    return {
+      unitText: "--",
+      deltaText: "",
+      cls: "neutral",
+    };
+  }
+
+  const basisUnitPrice = costBasisState && Number.isFinite(costBasisState.cost) ? costBasisState.cost : null;
+  const currentUnitPrice = getHoldingUnitPrice(currentHolding);
+  if (!Number.isFinite(basisUnitPrice) || basisUnitPrice <= 0 || !Number.isFinite(currentUnitPrice) || currentUnitPrice <= 0) {
+    return {
+      unitText: "--",
+      deltaText: "",
+      cls: "neutral",
+    };
+  }
+
+  const ratio = (currentUnitPrice - basisUnitPrice) / basisUnitPrice;
+  const absRatio = Math.abs(ratio);
+  if (absRatio < 0.0005) {
+    return {
+      unitText: formatUsdPerShare(basisUnitPrice),
+      deltaText: "(0.0%)",
+      cls: "neutral",
+    };
+  }
+
+  return {
+    unitText: formatUsdPerShare(basisUnitPrice),
+    deltaText: `(${formatPct(ratio, 1, true)})`,
+    cls: ratio > 0 ? "up" : "down",
+  };
 }
 
 function inferTradeAmount(currValue, prevValue, currShares, prevShares, shareDelta) {
@@ -2002,7 +2674,7 @@ function bindHoldingsCardActions() {
 
 async function loadSecHistoryData() {
   try {
-    const resp = await fetch("./data/sec-13f-history.json?v=20260220-enriched2", {
+    const resp = await fetch("./data/sec-13f-history.json?v=20260222-sec1999v2", {
       cache: "no-store",
     });
     if (!resp.ok) {
@@ -2062,8 +2734,8 @@ function getAvailableQuartersForInvestor(investor) {
     return [];
   }
   return Array.from(qMap.keys())
-    .filter((quarter) => quarterIndex(quarter) >= 0)
-    .sort((a, b) => quarterIndex(a) - quarterIndex(b));
+    .filter((quarter) => parseQuarterToOrder(quarter) >= 0)
+    .sort((a, b) => parseQuarterToOrder(a) - parseQuarterToOrder(b));
 }
 
 function getLatestQuarterForInvestor(investor) {
@@ -2151,22 +2823,63 @@ function classifyHoldingStyleBucket(item) {
 
   if (normalizedText.trim()) {
     const isIndexLike =
-      /( ETF | INDEX | TRUST | FUND )/.test(normalizedText) &&
+      /( ETF | INDEX | TRUST | FUND | TR )/.test(normalizedText) &&
       /( SPDR | ISHARES | VANGUARD | INVESCO | CORE S P | TOTAL MARKET | INDEX )/.test(normalizedText);
     if (isIndexLike) {
-      if (normalizedText.includes(" FINANCIAL ")) {
+      if (
+        normalizedText.includes(" FINANCIAL ") ||
+        normalizedText.includes(" STATE STREET FIN ") ||
+        normalizedText.includes(" STATE STREET FNL ")
+      ) {
         return "financials";
       }
-      if (normalizedText.includes(" ENERGY ") || normalizedText.includes(" UTILIT")) {
+      if (
+        normalizedText.includes(" ENERGY ") ||
+        normalizedText.includes(" UTILIT") ||
+        normalizedText.includes(" STATE STREET ENE ")
+      ) {
         return "energy";
       }
-      if (normalizedText.includes(" TECHNOLOGY ")) {
+      if (
+        normalizedText.includes(" TECHNOLOGY ") ||
+        normalizedText.includes(" STATE STREET TEC ") ||
+        normalizedText.includes(" STATE STREET TECH ")
+      ) {
         return "technology";
       }
-      if (normalizedText.includes(" HEALTHCARE ")) {
+      if (
+        normalizedText.includes(" HEALTHCARE ") ||
+        normalizedText.includes(" STATE STREET HEA ") ||
+        normalizedText.includes(" STATE STREET HLT ")
+      ) {
         return "healthcare";
       }
-      return "other";
+      if (
+        normalizedText.includes(" INDUSTRIAL ") ||
+        normalizedText.includes(" STATE STREET IND ") ||
+        normalizedText.includes(" TRANSPORT ")
+      ) {
+        return "industrials";
+      }
+      if (
+        normalizedText.includes(" CONSUMER ") ||
+        normalizedText.includes(" STATE STREET CON ") ||
+        normalizedText.includes(" DISCRETIONARY ")
+      ) {
+        return "consumer";
+      }
+      const isBroadBenchmark =
+        normalizedText.includes(" S P 500 ") ||
+        normalizedText.includes(" CORE S P ") ||
+        normalizedText.includes(" TOTAL MARKET ") ||
+        normalizedText.includes(" TOTAL STOCK ") ||
+        normalizedText.includes(" LARGE CAP ") ||
+        normalizedText.includes(" RUSSELL 1000 ") ||
+        normalizedText.includes(" RUS 1000 ");
+      if (isBroadBenchmark) {
+        return STYLE_BUCKET_BENCHMARK_PROXY;
+      }
+      return STYLE_BUCKET_BENCHMARK_PROXY;
     }
 
     for (const rule of STYLE_BUCKET_KEYWORDS) {
@@ -2177,6 +2890,19 @@ function classifyHoldingStyleBucket(item) {
   }
 
   return "other";
+}
+
+function shouldExcludeFromStyleProfile(item) {
+  const text = String(`${item?.securityClass || ""} ${item?.company || ""}`)
+    .toUpperCase()
+    .replace(/[^A-Z0-9.%/]+/g, " ")
+    .trim();
+  if (!text) {
+    return false;
+  }
+  return /\bNOTE\b|\bBOND\b|\bDEBENTURE\b|\bMTN\b|\bLOAN\b|\bTERM LOAN\b|\bTREASURY\b|\bMUNI\b|\bMUNICIPAL\b|\bGOVT\b|\bHIGH YIELD\b|\bHI YD\b|\bIBOXX\b/.test(
+    text
+  );
 }
 
 function buildStyleProfileFromSnapshot(snapshot) {
@@ -2190,11 +2916,22 @@ function buildStyleProfileFromSnapshot(snapshot) {
     if (!item || item.key === "OTHER") {
       return;
     }
+    if (shouldExcludeFromStyleProfile(item)) {
+      return;
+    }
     const weight = Number(item.weight) || 0;
     if (weight <= 0) {
       return;
     }
     const bucket = classifyHoldingStyleBucket(item);
+    if (bucket === STYLE_BUCKET_BENCHMARK_PROXY) {
+      STYLE_RADAR_AXES.forEach((axis) => {
+        const baseWeight = SP500_STYLE_PROFILE[axis.key] || 0;
+        totals[axis.key] = (totals[axis.key] || 0) + weight * baseWeight;
+      });
+      usedWeight += weight;
+      return;
+    }
     totals[bucket] = (totals[bucket] || 0) + weight;
     usedWeight += weight;
   });
@@ -2965,26 +3702,82 @@ function showDetailView() {
   }
 }
 
+function getCatalogSearchTokens(query) {
+  return String(query || "")
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function getInvestorCatalogSearchText(investor, latestSnapshot, styleTag) {
+  const topHoldings = (latestSnapshot?.snapshot?.holdings || [])
+    .filter((item) => item && item.key !== "OTHER")
+    .slice(0, 8)
+    .map((item) => `${item.ticker || ""} ${item.company || ""}`.trim())
+    .filter(Boolean)
+    .join(" ");
+  return [investor.id, investor.name, investor.org, investor.manager, styleTag, topHoldings].join(" ").toLowerCase();
+}
+
+function setCatalogSearchQuery(nextQuery) {
+  const safeNext = String(nextQuery || "");
+  if (safeNext === state.catalogSearchQuery) {
+    return;
+  }
+  state.catalogSearchQuery = safeNext;
+  renderInstitutionGrid();
+}
+
 function renderInstitutionGrid() {
   if (!elements.institutionGrid) {
     return;
   }
+  if (elements.catalogSearchInput && elements.catalogSearchInput.value !== state.catalogSearchQuery) {
+    elements.catalogSearchInput.value = state.catalogSearchQuery;
+  }
+  const searchQuery = (state.catalogSearchQuery || "").trim();
+  if (elements.catalogSearchClearBtn) {
+    elements.catalogSearchClearBtn.hidden = !searchQuery;
+    elements.catalogSearchClearBtn.disabled = !searchQuery;
+  }
+  if (!state.secHistoryLoaded) {
+    elements.institutionGrid.innerHTML = `<div class="empty catalog-empty">Loading SEC filing data...</div>`;
+    if (elements.catalogMeta) {
+      elements.catalogMeta.textContent = "Loading institutions...";
+    }
+    if (elements.catalogSearchInput) {
+      elements.catalogSearchInput.disabled = true;
+    }
+    return;
+  }
+  if (elements.catalogSearchInput) {
+    elements.catalogSearchInput.disabled = false;
+  }
+  const searchTokens = getCatalogSearchTokens(state.catalogSearchQuery);
   const focusActive = Boolean(state.catalogTreemapFocusKey && state.catalogTreemapFocusInstitutionIds.size);
   const sortedInvestors = INVESTORS.map((inv) => {
     const latest = getLatestSnapshotForInvestor(inv);
+    const styleTag = STYLE_TAG_BY_ID[inv.id] || "Multi-Strategy";
     return {
       inv,
       latest,
+      styleTag,
       latestTotal: latest?.snapshot?.total ?? -1,
+      searchText: getInvestorCatalogSearchText(inv, latest, styleTag),
     };
   }).sort((a, b) => b.latestTotal - a.latestTotal);
+  const visibleInvestors = searchTokens.length
+    ? sortedInvestors.filter((entry) => searchTokens.every((token) => entry.searchText.includes(token)))
+    : sortedInvestors;
 
-  const cards = sortedInvestors.map(({ inv, latest }) => {
+  const cards = visibleInvestors.map(({ inv, latest, styleTag }) => {
     const latestQuarter = latest ? formatQuarter(latest.quarter) : "--";
     const latestAum = latest ? `${formatB(latest.snapshot.total)}B AUM` : "AUM --";
     const holdingsCount = latest ? latest.snapshot.holdings.filter((item) => item.key !== "OTHER").length : 0;
-    const styleTag = STYLE_TAG_BY_ID[inv.id] || "Multi-Strategy";
     const avatarUrl = FOUNDER_AVATAR_BY_ID[inv.id] || "";
+    const avatarObjectPosition = AVATAR_OBJECT_POSITION_BY_ID[inv.id] || "50% 50%";
+    const avatarObjectFit = AVATAR_OBJECT_FIT_BY_ID[inv.id] || "cover";
     const initials = managerInitials(inv.manager);
     const avatarClass = avatarUrl ? "founder-avatar" : "founder-avatar fallback";
     const isTreemapHit = !focusActive || state.catalogTreemapFocusInstitutionIds.has(inv.id);
@@ -3000,7 +3793,7 @@ function renderInstitutionGrid() {
           <div class="${avatarClass}" title="${inv.manager}">
             ${
               avatarUrl
-                ? `<img class="founder-photo" src="${avatarUrl}?v=${AVATAR_CACHE_VERSION}" alt="${inv.manager} profile photo" loading="lazy" referrerpolicy="no-referrer" />`
+                ? `<img class="founder-photo" src="${avatarUrl}?v=${AVATAR_CACHE_VERSION}" alt="${inv.manager} profile photo" loading="lazy" referrerpolicy="no-referrer" style="object-fit:${avatarObjectFit}; object-position:${avatarObjectPosition};" />`
                 : ""
             }
             <span>${initials}</span>
@@ -3019,11 +3812,21 @@ function renderInstitutionGrid() {
 
   elements.institutionGrid.innerHTML = cards.length
     ? cards.join("")
-    : `<div class="empty catalog-empty">No institutions available.</div>`;
+    : `<div class="empty catalog-empty">${
+        searchTokens.length
+          ? `No institutions matched "${escapeHtml(searchQuery)}".`
+          : "No institutions available."
+      }</div>`;
   bindFounderAvatarFallback();
 
   if (elements.catalogMeta) {
-    elements.catalogMeta.textContent = `${cards.length} institutions available`;
+    const totalCount = sortedInvestors.length;
+    const shownCount = cards.length;
+    if (searchTokens.length && shownCount !== totalCount) {
+      elements.catalogMeta.textContent = `${shownCount}/${totalCount} institutions`;
+    } else {
+      elements.catalogMeta.textContent = `${shownCount} institutions available`;
+    }
   }
 }
 
@@ -3135,18 +3938,19 @@ function renderCatalogTreemap() {
     latest.snapshot.holdings
       .filter((item) => item && item.key !== "OTHER" && Number.isFinite(item.value) && item.value > 0)
       .forEach((item) => {
-        const key = ((item.ticker || "").trim().toUpperCase() || item.key || item.code || item.company || "").trim();
-        if (!key) {
+        const rawTicker = (item.ticker || "").trim().toUpperCase();
+        const ticker = looksLikeUsTicker(rawTicker) ? rawTicker : "";
+        if (!ticker) {
           return;
         }
+        const key = ticker;
         const company = cleanCompanyName(item.company || "");
-        const ticker = (item.ticker || "").trim().toUpperCase();
-        const display = ticker ? formatAssetLabel(company, ticker) : getHoldingDisplayLabel(item);
+        const display = formatAssetLabel(company, ticker);
         if (!aggregate.has(key)) {
           aggregate.set(key, {
             key,
-            ticker: ticker || key,
-            company: company || cleanCompanyName(display) || key,
+            ticker,
+            company: company || cleanCompanyName(display) || "Unknown Holding",
             display,
             value: 0,
             weightSum: 0,
@@ -3328,8 +4132,9 @@ function renderCatalogTreemap() {
       const widthScale = clamp(w / 220, 0.7, 1.22);
       const textScale = round(clamp(areaScale * 0.64 + widthScale * 0.36, 0.72, 1.28), 3);
       const textWidthBudget = Math.max(18, innerWidth * 0.94);
+      const companyRaw = cell.company || cleanCompanyName(cell.display || "") || "Unknown Holding";
 
-      const tickerRaw = cell.ticker || cell.display;
+      const tickerRaw = (cell.ticker || "").trim().toUpperCase();
       const tickerMax = round(clamp(21.5 * textScale, 10, 24), 2);
       const tickerBaseSize = fitTextSize(tickerRaw, textWidthBudget, 7.4, tickerMax, 0.56);
       const tickerCharLimit = Math.max(4, Math.floor(textWidthBudget / Math.max(tickerBaseSize * 0.56, 4.4)));
@@ -3340,7 +4145,6 @@ function renderCatalogTreemap() {
       );
       const tickerStroke = round(clamp(tickerSize * 0.1, 0.72, 1.32), 2);
 
-      const companyRaw = cell.company || cleanCompanyName(cell.display || "") || cell.key || "Unknown";
       const nameMax = round(clamp(13.2 * textScale, 8.2, Math.min(15.2, tickerSize * 0.76)), 2);
       const nameBaseSize = fitTextSize(companyRaw, textWidthBudget, 6.8, nameMax, 0.54);
       const nameCharLimit = Math.max(10, Math.floor(textWidthBudget / Math.max(nameBaseSize * 0.56, 4.5)));
@@ -3383,7 +4187,7 @@ function renderCatalogTreemap() {
       let metaStroke = round(clamp(metaSize * 0.08, 0.52, 0.84), 2);
 
       let showTicker = innerWidth >= 30 && innerHeight >= 15;
-      let showName = innerWidth >= 78 && innerHeight >= 33;
+      let showName = false;
       if (!showTicker) {
         showName = false;
         metaLines = 0;
@@ -3578,6 +4382,29 @@ function renderQuarterSelector() {
 }
 
 function bindControlActions() {
+  if (elements.catalogSearchInput) {
+    elements.catalogSearchInput.addEventListener("input", (event) => {
+      setCatalogSearchQuery(event.target.value || "");
+    });
+    elements.catalogSearchInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !state.catalogSearchQuery) {
+        return;
+      }
+      event.preventDefault();
+      setCatalogSearchQuery("");
+      elements.catalogSearchInput.focus();
+    });
+  }
+
+  if (elements.catalogSearchClearBtn) {
+    elements.catalogSearchClearBtn.addEventListener("click", () => {
+      setCatalogSearchQuery("");
+      if (elements.catalogSearchInput) {
+        elements.catalogSearchInput.focus();
+      }
+    });
+  }
+
   if (elements.institutionGrid) {
     elements.institutionGrid.addEventListener("click", (event) => {
       const card = event.target.closest(".institution-card");
