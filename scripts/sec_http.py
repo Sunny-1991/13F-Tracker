@@ -59,12 +59,12 @@ def _parse_retry_after_seconds(raw_value: str | None) -> float | None:
 
 def _compute_wait_seconds(attempt: int, http_code: int | None, retry_after_seconds: float | None) -> float:
     if http_code in (403, 429):
-        base = 8.0 + (attempt * 7.0)
+        base = 4.0 + (attempt * 4.0)
     else:
-        base = 1.8 * attempt
-    wait_seconds = min(90.0, base)
+        base = 1.5 * attempt
+    wait_seconds = min(45.0, base)
     if retry_after_seconds is not None:
-        wait_seconds = max(wait_seconds, min(120.0, retry_after_seconds))
+        wait_seconds = max(wait_seconds, min(60.0, retry_after_seconds))
     return wait_seconds
 
 

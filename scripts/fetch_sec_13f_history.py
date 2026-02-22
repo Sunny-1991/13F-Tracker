@@ -150,7 +150,7 @@ def fetch_bytes(url: str) -> bytes:
         url,
         user_agent=USER_AGENT,
         timeout=75,
-        max_attempts=12,
+        max_attempts=5,
         min_interval_seconds=0.8,
         success_pause_seconds=0.25,
         logger=print,
