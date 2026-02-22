@@ -5,11 +5,9 @@ import json
 import os
 import pathlib
 import re
-import time
-import urllib.error
-import urllib.request
 import xml.etree.ElementTree as ET
 
+from sec_http import fetch_bytes as fetch_sec_bytes
 
 USER_AGENT = os.environ.get(
     "SEC_USER_AGENT",
@@ -167,28 +165,15 @@ EXCHANGE_PRIORITY = {
 
 
 def fetch_bytes(url: str) -> bytes:
-    last_error = None
-    for attempt in range(1, 7):
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Accept": "application/json,text/xml,*/*",
-                },
-            )
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = resp.read()
-            if b"Request Rate Threshold Exceeded" in data:
-                raise RuntimeError("sec-rate-limit")
-            time.sleep(0.15)
-            return data
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, RuntimeError) as exc:
-            last_error = exc
-            wait_seconds = min(12, 1.8 * attempt)
-            print(f"[retry {attempt}] {url} -> {exc}; wait {wait_seconds:.1f}s")
-            time.sleep(wait_seconds)
-    raise RuntimeError(f"Failed to fetch {url}: {last_error}")
+    return fetch_sec_bytes(
+        url,
+        user_agent=USER_AGENT,
+        timeout=75,
+        max_attempts=10,
+        min_interval_seconds=0.7,
+        success_pause_seconds=0.2,
+        logger=print,
+    )
 
 
 def normalize_issuer_name(value: str) -> str:
@@ -300,14 +285,39 @@ def normalize_shares_number(value: float):
     return round(value, 4)
 
 
+def build_cached_ticker_map(payload: dict) -> dict[str, str]:
+    cached: dict[str, str] = {}
+    for manager in payload.get("managers", []):
+        for filing in manager.get("filings", []):
+            for holding in filing.get("holdings", []):
+                ticker = (holding.get("ticker") or "").strip().upper().replace(".", "-")
+                issuer = (holding.get("issuer") or "").strip()
+                if not ticker or not issuer:
+                    continue
+                normalized_issuer = normalize_issuer_name(issuer)
+                if not normalized_issuer:
+                    continue
+                cached.setdefault(normalized_issuer, ticker)
+    return cached
+
+
 def main() -> None:
+    refresh_shares = os.environ.get("REFRESH_SHARES_FROM_SEC", "").strip() == "1"
     payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-    by_name = choose_best_tickers()
+    cached_tickers = build_cached_ticker_map(payload)
+    by_name = dict(cached_tickers)
+    try:
+        sec_tickers = choose_best_tickers()
+        by_name.update(sec_tickers)
+        print(f"[info] ticker map loaded from SEC ({len(sec_tickers)}), cached ({len(cached_tickers)})")
+    except Exception as exc:
+        print(f"[warn] ticker map fetch failed; using cached mappings only: {exc}")
 
     total_filings = sum(len(m.get("filings", [])) for m in payload.get("managers", []))
     filing_counter = 0
     share_success = 0
     share_failed = 0
+    share_skipped = 0
 
     for manager in payload.get("managers", []):
         manager_id = manager.get("id")
@@ -316,7 +326,7 @@ def main() -> None:
             quarter = filing.get("quarter")
             info_table_url = filing.get("info_table_url", "")
             shares_by_code: dict[str, float] = {}
-            if info_table_url:
+            if refresh_shares and info_table_url:
                 try:
                     xml_bytes = fetch_bytes(info_table_url)
                     shares_by_code = parse_info_table_shares(xml_bytes)
@@ -324,6 +334,8 @@ def main() -> None:
                 except Exception as exc:
                     share_failed += 1
                     print(f"[warn] shares fetch failed {manager_id} {quarter}: {exc}")
+            elif not refresh_shares:
+                share_skipped += 1
 
             for holding in filing.get("holdings", []):
                 code = (holding.get("code") or "").strip()
@@ -342,12 +354,20 @@ def main() -> None:
             print(f"[{filing_counter}/{total_filings}] {manager_id} {quarter} holdings={len(filing.get('holdings', []))}")
 
     payload["generated_at_utc"] = payload.get("generated_at_utc")
-    payload["ticker_mapping_note"] = "Ticker resolved from SEC company_tickers_exchange.json plus local overrides."
-    payload["shares_note"] = "shares parsed from infoTable shrsOrPrnAmt/sshPrnamt."
+    payload["ticker_mapping_note"] = (
+        "Ticker resolved from SEC company_tickers_exchange.json when available, plus local overrides and cached fallback."
+    )
+    if refresh_shares:
+        payload["shares_note"] = "shares refreshed from infoTable shrsOrPrnAmt/sshPrnamt when fetch succeeds."
+    else:
+        payload["shares_note"] = "shares reused from history dataset; set REFRESH_SHARES_FROM_SEC=1 to force SEC re-fetch."
 
     DATA_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote {DATA_PATH}")
-    print(f"Shares fetch success={share_success}, failed={share_failed}")
+    if refresh_shares:
+        print(f"Shares fetch success={share_success}, failed={share_failed}")
+    else:
+        print(f"Shares refresh skipped by default for {share_skipped} filings")
 
 
 if __name__ == "__main__":

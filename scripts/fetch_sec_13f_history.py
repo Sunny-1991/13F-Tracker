@@ -13,11 +13,9 @@ import json
 import os
 import pathlib
 import re
-import time
-import urllib.error
-import urllib.request
 import xml.etree.ElementTree as ET
 
+from sec_http import fetch_bytes as fetch_sec_bytes
 
 USER_AGENT = os.environ.get(
     "SEC_USER_AGENT",
@@ -148,38 +146,15 @@ def estimate_report_date_from_filing(filing_date: str) -> str:
 
 
 def fetch_bytes(url: str) -> bytes:
-    last_error = None
-    for attempt in range(1, 7):
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Accept": "application/json,text/xml,*/*",
-                },
-            )
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = resp.read()
-
-            if b"Request Rate Threshold Exceeded" in data:
-                raise RuntimeError("sec-rate-limit")
-
-            time.sleep(0.12)
-            return data
-        except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                raise
-            last_error = exc
-            wait_seconds = min(12, 1.6 * attempt)
-            print(f"[retry {attempt}] {url} -> {exc}; wait {wait_seconds:.1f}s")
-            time.sleep(wait_seconds)
-        except (urllib.error.URLError, TimeoutError, RuntimeError) as exc:
-            last_error = exc
-            wait_seconds = min(12, 1.6 * attempt)
-            print(f"[retry {attempt}] {url} -> {exc}; wait {wait_seconds:.1f}s")
-            time.sleep(wait_seconds)
-
-    raise RuntimeError(f"Failed to fetch {url}: {last_error}")
+    return fetch_sec_bytes(
+        url,
+        user_agent=USER_AGENT,
+        timeout=75,
+        max_attempts=12,
+        min_interval_seconds=0.8,
+        success_pause_seconds=0.25,
+        logger=print,
+    )
 
 
 def fetch_json(url: str) -> dict:
@@ -569,28 +544,121 @@ def choose_best_by_quarter(filings: list[dict]) -> list[dict]:
     return selected
 
 
-def build_manager_payload(manager_def: dict) -> dict:
+def parse_cik(value: object) -> int | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
+def index_existing_filings(existing_manager: dict | None) -> tuple[dict[tuple[int, str], dict], dict[int, list[dict]]]:
+    by_key: dict[tuple[int, str], dict] = {}
+    by_cik: dict[int, list[dict]] = {}
+    if not isinstance(existing_manager, dict):
+        return by_key, by_cik
+
+    default_cik = parse_cik(existing_manager.get("cik"))
+    for filing in existing_manager.get("filings", []):
+        if not isinstance(filing, dict):
+            continue
+        accession = (filing.get("accession") or "").strip()
+        if not accession:
+            continue
+        source_cik = parse_cik(filing.get("source_cik")) or default_cik
+        if source_cik is None:
+            continue
+        key = (source_cik, accession)
+        by_key[key] = filing
+        by_cik.setdefault(source_cik, []).append(filing)
+    return by_key, by_cik
+
+
+def load_existing_history_managers() -> dict[str, dict]:
+    if not OUTPUT_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"[warn] existing history parse failed: {exc}")
+        return {}
+
+    result: dict[str, dict] = {}
+    for manager in payload.get("managers", []):
+        if not isinstance(manager, dict):
+            continue
+        manager_id = manager.get("id")
+        if manager_id:
+            result[manager_id] = manager
+    return result
+
+
+def build_manager_payload(manager_def: dict, existing_manager: dict | None = None) -> dict:
     ciks = manager_ciks(manager_def)
+    existing_by_key, existing_by_cik = index_existing_filings(existing_manager)
     entity_names: list[str] = []
     all_payload_rows: list[dict] = []
     total_ciks = len(ciks)
+    fetched_count = 0
+    reused_count = 0
+    failed_ciks: list[tuple[int, Exception]] = []
 
     for idx, cik in enumerate(ciks, start=1):
         print(f"    - [{idx}/{total_ciks}] CIK {cik:010d}")
-        entity_name, rows = load_all_submission_rows(cik)
+        try:
+            entity_name, rows = load_all_submission_rows(cik)
+        except Exception as exc:
+            failed_ciks.append((cik, exc))
+            print(f"    - [warn] submissions failed for CIK {cik:010d}: {exc}")
+            continue
         if entity_name:
             entity_names.append(entity_name)
         filings = choose_quarter_filings(rows)
         for row in filings:
-            all_payload_rows.append(build_filing_payload(cik, row))
+            cache_key = (cik, row["accession"])
+            cached = existing_by_key.get(cache_key)
+            if cached is not None:
+                all_payload_rows.append(dict(cached))
+                reused_count += 1
+                continue
+            try:
+                all_payload_rows.append(build_filing_payload(cik, row))
+                fetched_count += 1
+            except Exception as exc:
+                print(f"    - [warn] filing fetch failed {cik:010d} {row['accession']}: {exc}")
+
+    for failed_cik, _ in failed_ciks:
+        cached_rows = existing_by_cik.get(failed_cik, [])
+        if not cached_rows:
+            continue
+        all_payload_rows.extend(dict(row) for row in cached_rows)
+        reused_count += len(cached_rows)
+        print(f"    - [fallback] reused {len(cached_rows)} cached filings for CIK {failed_cik:010d}")
+
+    if not all_payload_rows:
+        reasons = "; ".join(f"{cik:010d}={exc}" for cik, exc in failed_ciks)
+        raise RuntimeError(f"manager refresh produced no filings ({manager_def['id']}): {reasons}")
 
     filing_payloads = choose_best_by_quarter(all_payload_rows)
+    if not entity_names and isinstance(existing_manager, dict):
+        cached_entity_name = (existing_manager.get("sec_entity_name") or "").strip()
+        if cached_entity_name:
+            entity_names.append(cached_entity_name)
+
+    unique_entity_names = [name for name in dict.fromkeys(entity_names) if name]
+    print(
+        f"    - [stats] fetched={fetched_count} reused={reused_count} selected={len(filing_payloads)}"
+    )
 
     return {
         "id": manager_def["id"],
         "name": manager_def["name"],
         "org": manager_def["org"],
-        "sec_entity_name": " | ".join(dict.fromkeys(entity_names)),
+        "sec_entity_name": " | ".join(unique_entity_names),
         "cik": f"{ciks[0]:010d}",
         "ciks": [f"{cik:010d}" for cik in ciks],
         "color": manager_def["color"],
@@ -607,8 +675,11 @@ def main() -> None:
     else:
         manager_defs = MANAGERS
 
+    existing_by_id = load_existing_history_managers()
     managers = []
     total = len(manager_defs)
+    refreshed_managers = 0
+    fallback_managers = 0
     for idx, manager_def in enumerate(manager_defs, start=1):
         ciks = manager_ciks(manager_def)
         if len(ciks) == 1:
@@ -616,9 +687,23 @@ def main() -> None:
         else:
             cik_desc = f"{len(ciks)} CIKs"
         print(f"[{idx}/{total}] Fetching {manager_def['org']} ({cik_desc}) ...")
-        payload = build_manager_payload(manager_def)
+        existing_manager = existing_by_id.get(manager_def["id"])
+        try:
+            payload = build_manager_payload(manager_def, existing_manager=existing_manager)
+            refreshed_managers += 1
+        except Exception as exc:
+            if isinstance(existing_manager, dict) and existing_manager.get("filings"):
+                payload = existing_manager
+                fallback_managers += 1
+                print(f"[warn] {manager_def['id']} refresh failed; reusing cached manager payload: {exc}")
+            else:
+                raise
         managers.append(payload)
         print(f"[{idx}/{total}] Done {manager_def['name']}: {len(payload['filings'])} quarters")
+
+    if refreshed_managers == 0:
+        raise RuntimeError("All manager refresh attempts failed; aborting to avoid stale-only update.")
+
     quarters = sorted(
         {f["quarter"] for m in managers for f in m["filings"]},
         key=lambda q: (int(q[:4]), int(q[-1])),
@@ -635,6 +720,7 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Wrote {OUTPUT_PATH}")
+    print(f"Refresh summary: refreshed={refreshed_managers}, fallback={fallback_managers}")
     for manager in managers:
         latest = manager["filings"][-1] if manager["filings"] else None
         if not latest:
