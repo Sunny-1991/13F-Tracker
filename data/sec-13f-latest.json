@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-23T03:04:31Z",
+  "generated_at_utc": "2026-02-23T03:16:06Z",
   "source": "Derived from sec-13f-history.json (SEC EDGAR upstream)",
   "managers": [
     {
@@ -14264,7 +14264,8 @@
             "title_of_class": "Common Stock",
             "value_usd": 9853660,
             "shares": 3252033,
-            "weight": 0.0006539710172857679
+            "weight": 0.0006539710172857679,
+            "ticker": "THAR"
           },
           {
             "code": "461202103",
