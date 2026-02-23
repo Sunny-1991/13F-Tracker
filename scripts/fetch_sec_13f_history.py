@@ -603,6 +603,7 @@ def build_manager_payload(manager_def: dict, existing_manager: dict | None = Non
     entity_names: list[str] = []
     all_payload_rows: list[dict] = []
     total_ciks = len(ciks)
+    discovered_count = 0
     fetched_count = 0
     reused_count = 0
     failed_ciks: list[tuple[int, Exception]] = []
@@ -618,6 +619,7 @@ def build_manager_payload(manager_def: dict, existing_manager: dict | None = Non
         if entity_name:
             entity_names.append(entity_name)
         filings = choose_quarter_filings(rows)
+        discovered_count += len(filings)
         for row in filings:
             cache_key = (cik, row["accession"])
             cached = existing_by_key.get(cache_key)
@@ -651,7 +653,7 @@ def build_manager_payload(manager_def: dict, existing_manager: dict | None = Non
 
     unique_entity_names = [name for name in dict.fromkeys(entity_names) if name]
     print(
-        f"    - [stats] fetched={fetched_count} reused={reused_count} selected={len(filing_payloads)}"
+        f"    - [stats] discovered={discovered_count} fetched={fetched_count} reused={reused_count} selected={len(filing_payloads)}"
     )
 
     return {
@@ -710,7 +712,7 @@ def main() -> None:
     )
 
     payload = {
-        "generated_at_utc": dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "generated_at_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "source": "SEC EDGAR (data.sec.gov + sec.gov/Archives)",
         "note": "Nancy Pelosi does not file Form 13F as an institutional investment manager; no SEC 13F dataset is included for her.",
         "quarters": quarters,

@@ -29,7 +29,7 @@ def main() -> None:
     managers = history_payload.get("managers", [])
 
     payload = {
-        "generated_at_utc": dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "generated_at_utc": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "source": "Derived from sec-13f-history.json (SEC EDGAR upstream)",
         "managers": [],
     }
