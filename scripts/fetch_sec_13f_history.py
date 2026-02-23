@@ -181,20 +181,21 @@ def submission_rows(submission_obj: dict) -> list[dict]:
     return rows
 
 
-def load_all_submission_rows(cik: int) -> tuple[str, list[dict]]:
+def load_submission_rows(cik: int, *, include_archives: bool) -> tuple[str, list[dict]]:
     cik_padded = f"{cik:010d}"
     base_url = f"https://data.sec.gov/submissions/CIK{cik_padded}.json"
     base_obj = fetch_json(base_url)
     entity_name = base_obj.get("name", "")
 
     rows = submission_rows(base_obj)
-    for file_meta in base_obj.get("filings", {}).get("files", []):
-        name = file_meta.get("name")
-        if not name:
-            continue
-        extra_url = f"https://data.sec.gov/submissions/{name}"
-        extra_obj = fetch_json(extra_url)
-        rows.extend(submission_rows(extra_obj))
+    if include_archives:
+        for file_meta in base_obj.get("filings", {}).get("files", []):
+            name = file_meta.get("name")
+            if not name:
+                continue
+            extra_url = f"https://data.sec.gov/submissions/{name}"
+            extra_obj = fetch_json(extra_url)
+            rows.extend(submission_rows(extra_obj))
 
     dedup = {}
     for row in rows:
@@ -203,6 +204,14 @@ def load_all_submission_rows(cik: int) -> tuple[str, list[dict]]:
             dedup[acc] = row
 
     return entity_name, list(dedup.values())
+
+
+def load_all_submission_rows(cik: int) -> tuple[str, list[dict]]:
+    return load_submission_rows(cik, include_archives=True)
+
+
+def load_recent_submission_rows(cik: int) -> tuple[str, list[dict]]:
+    return load_submission_rows(cik, include_archives=False)
 
 
 def choose_quarter_filings(rows: list[dict]) -> list[dict]:
@@ -597,49 +606,98 @@ def load_existing_history_managers() -> dict[str, dict]:
     return result
 
 
+def parse_iso_date(value: str | None) -> dt.date | None:
+    if not value:
+        return None
+    try:
+        return dt.date.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def incremental_report_window_start(latest_report_date: dt.date | None) -> dt.date | None:
+    if latest_report_date is None:
+        return None
+    return latest_report_date - dt.timedelta(days=130)
+
+
 def build_manager_payload(manager_def: dict, existing_manager: dict | None = None) -> dict:
     ciks = manager_ciks(manager_def)
     existing_by_key, existing_by_cik = index_existing_filings(existing_manager)
     entity_names: list[str] = []
-    all_payload_rows: list[dict] = []
+    all_payload_rows: list[dict] = [dict(row) for row in existing_by_key.values()]
     total_ciks = len(ciks)
     discovered_count = 0
+    candidate_count = 0
     fetched_count = 0
-    reused_count = 0
+    reused_count = len(all_payload_rows)
     failed_ciks: list[tuple[int, Exception]] = []
 
     for idx, cik in enumerate(ciks, start=1):
         print(f"    - [{idx}/{total_ciks}] CIK {cik:010d}")
+        cached_rows_for_cik = existing_by_cik.get(cik, [])
+        known_accessions = {
+            (row.get("accession") or "").strip()
+            for row in cached_rows_for_cik
+            if (row.get("accession") or "").strip()
+        }
+        load_full_history = len(cached_rows_for_cik) == 0
+
         try:
-            entity_name, rows = load_all_submission_rows(cik)
+            if load_full_history:
+                entity_name, rows = load_all_submission_rows(cik)
+            else:
+                entity_name, rows = load_recent_submission_rows(cik)
         except Exception as exc:
             failed_ciks.append((cik, exc))
             print(f"    - [warn] submissions failed for CIK {cik:010d}: {exc}")
             continue
+
         if entity_name:
             entity_names.append(entity_name)
         filings = choose_quarter_filings(rows)
         discovered_count += len(filings)
-        for row in filings:
-            cache_key = (cik, row["accession"])
-            cached = existing_by_key.get(cache_key)
-            if cached is not None:
-                all_payload_rows.append(dict(cached))
-                reused_count += 1
-                continue
+
+        if load_full_history:
+            candidate_rows = filings
+            if candidate_rows:
+                print(f"    - [bootstrap] discovered {len(candidate_rows)} filings (full history)")
+        else:
+            latest_known_report = max(
+                (parse_iso_date(row.get("report_date")) for row in cached_rows_for_cik),
+                default=None,
+            )
+            window_start = incremental_report_window_start(latest_known_report)
+            candidate_rows = []
+            for row in filings:
+                accession = row["accession"]
+                if accession in known_accessions:
+                    continue
+                row_report_date = parse_iso_date(row.get("report_date"))
+                if window_start is not None and row_report_date is not None and row_report_date < window_start:
+                    continue
+                candidate_rows.append(row)
+
+            latest_known_text = latest_known_report.isoformat() if latest_known_report else "n/a"
+            window_start_text = window_start.isoformat() if window_start else "n/a"
+            print(
+                f"    - [incremental] recent={len(filings)} new={len(candidate_rows)} latest_cached_report={latest_known_text} window_start={window_start_text}"
+            )
+
+        candidate_count += len(candidate_rows)
+        for row in candidate_rows:
             try:
                 all_payload_rows.append(build_filing_payload(cik, row))
                 fetched_count += 1
             except Exception as exc:
                 print(f"    - [warn] filing fetch failed {cik:010d} {row['accession']}: {exc}")
 
-    for failed_cik, _ in failed_ciks:
+    for failed_cik, failed_exc in failed_ciks:
         cached_rows = existing_by_cik.get(failed_cik, [])
-        if not cached_rows:
+        if cached_rows:
+            print(f"    - [fallback] reused {len(cached_rows)} cached filings for CIK {failed_cik:010d}")
             continue
-        all_payload_rows.extend(dict(row) for row in cached_rows)
-        reused_count += len(cached_rows)
-        print(f"    - [fallback] reused {len(cached_rows)} cached filings for CIK {failed_cik:010d}")
+        raise RuntimeError(f"CIK {failed_cik:010d} has no cache and refresh failed: {failed_exc}") from failed_exc
 
     if not all_payload_rows:
         reasons = "; ".join(f"{cik:010d}={exc}" for cik, exc in failed_ciks)
@@ -653,7 +711,7 @@ def build_manager_payload(manager_def: dict, existing_manager: dict | None = Non
 
     unique_entity_names = [name for name in dict.fromkeys(entity_names) if name]
     print(
-        f"    - [stats] discovered={discovered_count} fetched={fetched_count} reused={reused_count} selected={len(filing_payloads)}"
+        f"    - [stats] discovered={discovered_count} candidates={candidate_count} fetched={fetched_count} reused={reused_count} selected={len(filing_payloads)}"
     )
 
     return {
@@ -678,6 +736,15 @@ def main() -> None:
         manager_defs = MANAGERS
 
     existing_by_id = load_existing_history_managers()
+    existing_payload_obj: dict | None = None
+    existing_raw_text = ""
+    if OUTPUT_PATH.exists():
+        try:
+            existing_raw_text = OUTPUT_PATH.read_text(encoding="utf-8")
+            existing_payload_obj = json.loads(existing_raw_text)
+        except Exception as exc:
+            print(f"[warn] failed to parse existing payload for diff check: {exc}")
+
     managers = []
     total = len(manager_defs)
     refreshed_managers = 0
@@ -719,9 +786,24 @@ def main() -> None:
         "managers": managers,
     }
 
+    if isinstance(existing_payload_obj, dict):
+        old_cmp = dict(existing_payload_obj)
+        old_cmp.pop("generated_at_utc", None)
+        new_cmp = dict(payload)
+        new_cmp.pop("generated_at_utc", None)
+        if old_cmp == new_cmp:
+            preserved_ts = existing_payload_obj.get("generated_at_utc")
+            if preserved_ts:
+                payload["generated_at_utc"] = preserved_ts
+            print("No effective SEC history changes detected; preserving generated_at_utc.")
+
+    output_text = json.dumps(payload, ensure_ascii=False, indent=2)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Wrote {OUTPUT_PATH}")
+    if output_text == existing_raw_text:
+        print(f"No file changes for {OUTPUT_PATH}")
+    else:
+        OUTPUT_PATH.write_text(output_text, encoding="utf-8")
+        print(f"Wrote {OUTPUT_PATH}")
     print(f"Refresh summary: refreshed={refreshed_managers}, fallback={fallback_managers}")
     for manager in managers:
         latest = manager["filings"][-1] if manager["filings"] else None

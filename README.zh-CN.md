@@ -150,6 +150,8 @@ python3 scripts/enrich_sec_13f_holdings.py
   - Actions 页手动触发（`workflow_dispatch`）
 - 执行逻辑：
   - 依次运行 history/latest/enrich 三个脚本
+  - 默认走增量刷新（recent 窗口 + 本地缓存基线），不再每次全量回拉所有历史季度
+  - 无实质数据变化时保持文件内容不变（避免仅时间戳变更导致的无意义提交）
   - 仅在数据文件有变化时自动提交并推送
   - 推送目标分支：`main`
 

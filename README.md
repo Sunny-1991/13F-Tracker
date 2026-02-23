@@ -150,6 +150,8 @@ This repository now includes a built-in GitHub Actions workflow:
   - Manual trigger via `workflow_dispatch`
 - Behavior:
   - Runs history/latest/enrichment scripts
+  - Uses incremental SEC refresh by default (recent window + cached baseline), instead of refetching all historical quarters
+  - Keeps file content unchanged when no effective data delta (prevents timestamp-only commits)
   - Commits and pushes only when dataset files changed
   - Push target: `main`
 
