@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-22T19:01:30Z",
+  "generated_at_utc": "2026-02-23T02:51:53Z",
   "source": "Derived from sec-13f-history.json (SEC EDGAR upstream)",
   "managers": [
     {
@@ -47,7 +47,8 @@
             "title_of_class": "COM",
             "value_usd": 28451276370,
             "shares": 517295934,
-            "weight": 0.10377614302781085
+            "weight": 0.10377614302781085,
+            "ticker": "BAC"
           },
           {
             "code": "191216100",
@@ -83,7 +84,8 @@
             "title_of_class": "COM",
             "value_usd": 10894391643,
             "shares": 264941431,
-            "weight": 0.039737336583502994
+            "weight": 0.039737336583502994,
+            "ticker": "OXY"
           },
           {
             "code": "H1467J104",
@@ -317,7 +319,8 @@
             "title_of_class": "CL A",
             "value_usd": 221459118,
             "shares": 1060882,
-            "weight": 0.0008077730083355428
+            "weight": 0.0008077730083355428,
+            "ticker": "CHTR"
           },
           {
             "code": "512816109",
@@ -602,7 +605,8 @@
             "title_of_class": "SPONSORED ADS",
             "value_usd": 106318348,
             "shares": 349858,
-            "weight": 0.01231829661860734
+            "weight": 0.01231829661860734,
+            "ticker": "TSM"
           },
           {
             "code": "20717M103",
@@ -1097,7 +1101,8 @@
             "title_of_class": "SHS CLASS A",
             "value_usd": 33606990,
             "shares": 125259,
-            "weight": 0.003893785777019134
+            "weight": 0.003893785777019134,
+            "ticker": "ACN"
           },
           {
             "code": "732908108",
@@ -1385,7 +1390,8 @@
             "title_of_class": "COM",
             "value_usd": 17035157,
             "shares": 98191,
-            "weight": 0.001973733798709374
+            "weight": 0.001973733798709374,
+            "ticker": "TXN"
           },
           {
             "code": "989207105",
@@ -1637,7 +1643,8 @@
             "title_of_class": "COM",
             "value_usd": 8883139,
             "shares": 57418,
-            "weight": 0.0010292216081679427
+            "weight": 0.0010292216081679427,
+            "ticker": "DLR"
           },
           {
             "code": "34629L202",
@@ -2633,7 +2640,8 @@
             "title_of_class": "COM",
             "value_usd": 541657312,
             "shares": 13172600,
-            "weight": 0.03097207572985064
+            "weight": 0.03097207572985064,
+            "ticker": "OXY"
           },
           {
             "code": "594918104",
@@ -2660,7 +2668,8 @@
             "title_of_class": "SPONSORED ADS",
             "value_usd": 372078054,
             "shares": 1224384,
-            "weight": 0.02127549912204168
+            "weight": 0.02127549912204168,
+            "ticker": "TSM"
           },
           {
             "code": "254687106",
@@ -2810,7 +2819,8 @@
             "title_of_class": "COM",
             "value_usd": 446256499,
             "shares": 1275055,
-            "weight": 0.01627389626907309
+            "weight": 0.01627389626907309,
+            "ticker": "ADBE"
           },
           {
             "code": "36828A101",
@@ -3080,7 +3090,8 @@
             "title_of_class": "COM",
             "value_usd": 106391528,
             "shares": 1141540,
-            "weight": 0.003879841961876246
+            "weight": 0.003879841961876246,
+            "ticker": "WFC"
           },
           {
             "code": "90353T100",
@@ -3440,7 +3451,8 @@
             "title_of_class": "COM",
             "value_usd": 55571615,
             "shares": 1010393,
-            "weight": 0.0020265625263529577
+            "weight": 0.0020265625263529577,
+            "ticker": "BAC"
           },
           {
             "code": "268150109",
@@ -3476,7 +3488,8 @@
             "title_of_class": "COM NEW",
             "value_usd": 52513878,
             "shares": 170483,
-            "weight": 0.0019150542460979584
+            "weight": 0.0019150542460979584,
+            "ticker": "GE"
           },
           {
             "code": "92840M102",
@@ -3989,7 +4002,8 @@
             "title_of_class": "COM",
             "value_usd": 31802784,
             "shares": 195553,
-            "weight": 0.0011597706902723164
+            "weight": 0.0011597706902723164,
+            "ticker": "MPC"
           },
           {
             "code": "466313103",
@@ -4160,7 +4174,8 @@
             "title_of_class": "COM",
             "value_usd": 26165120,
             "shares": 30342,
-            "weight": 0.0009541787059729737
+            "weight": 0.0009541787059729737,
+            "ticker": "COST"
           },
           {
             "code": "29452E101",
@@ -4205,7 +4220,8 @@
             "title_of_class": "COM STK",
             "value_usd": 25618612,
             "shares": 667499,
-            "weight": 0.0009342488796911191
+            "weight": 0.0009342488796911191,
+            "ticker": "SLB"
           },
           {
             "code": "126408103",
@@ -4484,7 +4500,8 @@
             "title_of_class": "COM",
             "value_usd": 21076137,
             "shares": 200706,
-            "weight": 0.000768595792015061
+            "weight": 0.000768595792015061,
+            "ticker": "EOG"
           },
           {
             "code": "G3922B107",
@@ -4835,7 +4852,8 @@
             "title_of_class": "CL A",
             "value_usd": 17239100,
             "shares": 207700,
-            "weight": 0.0006286683237125873
+            "weight": 0.0006286683237125873,
+            "ticker": "CTSH"
           },
           {
             "code": "919794107",
@@ -4988,7 +5006,8 @@
             "title_of_class": "COM",
             "value_usd": 15372331,
             "shares": 122694,
-            "weight": 0.0005605917687886862
+            "weight": 0.0005605917687886862,
+            "ticker": "ABT"
           },
           {
             "code": "98954M200",
@@ -5339,7 +5358,8 @@
             "title_of_class": "COM",
             "value_usd": 13048965,
             "shares": 41746,
-            "weight": 0.0004758642245090649
+            "weight": 0.0004758642245090649,
+            "ticker": "CDNS"
           },
           {
             "code": "784730103",
@@ -5375,7 +5395,8 @@
             "title_of_class": "COM",
             "value_usd": 12609022,
             "shares": 54509,
-            "weight": 0.00045982056629378183
+            "weight": 0.00045982056629378183,
+            "ticker": "UNP"
           },
           {
             "code": "G6700G107",
@@ -5978,7 +5999,8 @@
             "title_of_class": "COM",
             "value_usd": 9841729,
             "shares": 122562,
-            "weight": 0.0003589040769450585
+            "weight": 0.0003589040769450585,
+            "ticker": "PEG"
           },
           {
             "code": "278642103",
@@ -6230,7 +6252,8 @@
             "title_of_class": "COM",
             "value_usd": 8737230,
             "shares": 131466,
-            "weight": 0.0003186256671166899
+            "weight": 0.0003186256671166899,
+            "ticker": "FIS"
           },
           {
             "code": "926400102",
@@ -6464,7 +6487,8 @@
             "title_of_class": "COM",
             "value_usd": 7738348,
             "shares": 84841,
-            "weight": 0.0002821988540854599
+            "weight": 0.0002821988540854599,
+            "ticker": "ORLY"
           },
           {
             "code": "281020107",
@@ -6779,7 +6803,8 @@
             "title_of_class": "CL A",
             "value_usd": 6642216,
             "shares": 31819,
-            "weight": 0.0002422255685306615
+            "weight": 0.0002422255685306615,
+            "ticker": "CHTR"
           },
           {
             "code": "457730109",
@@ -7031,7 +7056,8 @@
             "title_of_class": "COM",
             "value_usd": 6035089,
             "shares": 24503,
-            "weight": 0.00022008511378704656
+            "weight": 0.00022008511378704656,
+            "ticker": "ITW"
           },
           {
             "code": "88339J105",
@@ -7436,7 +7462,8 @@
             "title_of_class": "SHS CLASS A",
             "value_usd": 5179800,
             "shares": 19306,
-            "weight": 0.00018889479051496073
+            "weight": 0.00018889479051496073,
+            "ticker": "ACN"
           },
           {
             "code": "770323103",
@@ -7733,7 +7760,8 @@
             "title_of_class": "COM",
             "value_usd": 4610302,
             "shares": 163951,
-            "weight": 0.00016812657448177622
+            "weight": 0.00016812657448177622,
+            "ticker": "VICI"
           },
           {
             "code": "G51502105",
@@ -7742,7 +7770,8 @@
             "title_of_class": "SHS",
             "value_usd": 4574570,
             "shares": 38201,
-            "weight": 0.00016682351477779526
+            "weight": 0.00016682351477779526,
+            "ticker": "JCI"
           },
           {
             "code": "313855108",
@@ -7994,7 +8023,8 @@
             "title_of_class": "COM",
             "value_usd": 4166072,
             "shares": 6158,
-            "weight": 0.0001519265797347858
+            "weight": 0.0001519265797347858,
+            "ticker": "IDXX"
           },
           {
             "code": "830879102",
@@ -8966,7 +8996,8 @@
             "title_of_class": "COM",
             "value_usd": 2790140,
             "shares": 60003,
-            "weight": 0.00010174966423557136
+            "weight": 0.00010174966423557136,
+            "ticker": "GIS"
           },
           {
             "code": "753422104",
@@ -9083,7 +9114,8 @@
             "title_of_class": "COM",
             "value_usd": 2602160,
             "shares": 2871,
-            "weight": 9.489448783474462e-05
+            "weight": 9.489448783474462e-05,
+            "ticker": "MPWR"
           },
           {
             "code": "019330109",
@@ -11828,7 +11860,8 @@
             "title_of_class": "COM",
             "value_usd": 297198,
             "shares": 1921,
-            "weight": 1.0838092967192806e-05
+            "weight": 1.0838092967192806e-05,
+            "ticker": "DLR"
           },
           {
             "code": "603158106",
@@ -12293,7 +12326,8 @@
             "title_of_class": "ADR",
             "value_usd": 227485976,
             "shares": 748580,
-            "weight": 0.015097865680667465
+            "weight": 0.015097865680667465,
+            "ticker": "TSM"
           },
           {
             "code": "852234103",
@@ -13688,7 +13722,8 @@
             "title_of_class": "Common Stock",
             "value_usd": 1184991,
             "shares": 3847,
-            "weight": 7.864588079398715e-05
+            "weight": 7.864588079398715e-05,
+            "ticker": "GE"
           },
           {
             "code": "533900106",
@@ -13946,7 +13981,8 @@
             "title_of_class": "SPONSORED ADS",
             "value_usd": 603221650,
             "shares": 1985000,
-            "weight": 0.03899806511372532
+            "weight": 0.03899806511372532,
+            "ticker": "TSM"
           },
           {
             "code": "G4R20B107",
@@ -14363,7 +14399,8 @@
             "title_of_class": "COM",
             "value_usd": 573726285,
             "shares": 10431387,
-            "weight": 0.16075824689647691
+            "weight": 0.16075824689647691,
+            "ticker": "BAC"
           },
           {
             "code": "722304102",
@@ -14399,7 +14436,8 @@
             "title_of_class": "COM",
             "value_usd": 60302480,
             "shares": 1466500,
-            "weight": 0.016896769804280207
+            "weight": 0.016896769804280207,
+            "ticker": "OXY"
           },
           {
             "code": "227046109",
@@ -14513,7 +14551,8 @@
             "title_of_class": "SPONSORED ADS",
             "value_usd": 1132134294,
             "shares": 3725474,
-            "weight": 0.038100638022922746
+            "weight": 0.038100638022922746,
+            "ticker": "TSM"
           },
           {
             "code": "11135F101",
@@ -14969,7 +15008,8 @@
             "title_of_class": "COM",
             "value_usd": 6357164720,
             "shares": 28934344,
-            "weight": 0.17978359456848084
+            "weight": 0.17978359456848084,
+            "ticker": "WM"
           },
           {
             "code": "136375102",
@@ -15371,7 +15411,8 @@
             "title_of_class": "COM",
             "value_usd": 154710000,
             "shares": 1000000,
-            "weight": 0.0068473226137350475
+            "weight": 0.0068473226137350475,
+            "ticker": "DLR"
           },
           {
             "code": "464287515",
@@ -15503,7 +15544,8 @@
             "title_of_class": "COM NEW",
             "value_usd": 14634638061,
             "shares": 47510431,
-            "weight": 0.27278585219312934
+            "weight": 0.27278585219312934,
+            "ticker": "GE"
           },
           {
             "code": "92826C839",
