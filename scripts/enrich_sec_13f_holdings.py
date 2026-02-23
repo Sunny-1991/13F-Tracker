@@ -301,23 +301,143 @@ def build_cached_ticker_map(payload: dict) -> dict[str, str]:
     return cached
 
 
+def normalize_ticker(value: str) -> str:
+    return (value or "").strip().upper().replace(".", "-")
+
+
+def filing_needs_ticker_update(filing: dict) -> bool:
+    for holding in filing.get("holdings", []):
+        if not normalize_ticker(holding.get("ticker") or ""):
+            return True
+    return False
+
+
+LEGACY_NOISE_CODES = {
+    "SPONSORED",
+    "COMPANIES",
+    "COMPANY",
+    "SEPTEMBER",
+    "JUNE",
+    "MARCH",
+    "DECEMBER",
+}
+
+
+def holding_value_usd(holding: dict) -> float:
+    value = holding.get("value_usd")
+    if isinstance(value, (int, float)):
+        return float(value) if value > 0 else 0.0
+    try:
+        parsed = float(str(value).replace(",", "").strip())
+        return parsed if parsed > 0 else 0.0
+    except Exception:
+        return 0.0
+
+
+def holding_shares_count(holding: dict) -> float:
+    shares = holding.get("shares")
+    if isinstance(shares, (int, float)):
+        return float(shares) if shares > 0 else 0.0
+    try:
+        parsed = float(str(shares).replace(",", "").strip())
+        return parsed if parsed > 0 else 0.0
+    except Exception:
+        return 0.0
+
+
+def is_legacy_noise_holding(holding: dict, filing_total_value: float) -> bool:
+    code = str(holding.get("code") or "").strip().upper()
+    if not code:
+        return False
+
+    has_digit = any(ch.isdigit() for ch in code)
+    value = holding_value_usd(holding)
+    shares = holding_shares_count(holding)
+
+    if code in LEGACY_NOISE_CODES and not has_digit:
+        if value <= 1000:
+            return True
+        if shares >= 1900 and shares <= 2105:
+            return True
+        if filing_total_value > 0 and value >= filing_total_value * 0.9:
+            return True
+
+    if not has_digit and len(code) >= 7 and filing_total_value > 0 and value >= filing_total_value * 0.9 and shares > 0:
+        implied_value_per_share = value / shares
+        if implied_value_per_share > 100000:
+            return True
+
+    return False
+
+
+def filing_needs_sanitization(filing: dict) -> bool:
+    holdings = filing.get("holdings", [])
+    if not isinstance(holdings, list) or not holdings:
+        return False
+    filing_total = sum(holding_value_usd(holding) for holding in holdings)
+    return any(is_legacy_noise_holding(holding, filing_total) for holding in holdings)
+
+
+def sanitize_filing_holdings(filing: dict) -> int:
+    holdings = filing.get("holdings", [])
+    if not isinstance(holdings, list) or not holdings:
+        return 0
+
+    filing_total = sum(holding_value_usd(holding) for holding in holdings)
+    sanitized: list[dict] = []
+    removed = 0
+    for holding in holdings:
+        if is_legacy_noise_holding(holding, filing_total):
+            removed += 1
+            continue
+        sanitized.append(holding)
+
+    if removed == 0:
+        return 0
+
+    total_value = sum(holding_value_usd(holding) for holding in sanitized)
+    for holding in sanitized:
+        value = holding_value_usd(holding)
+        holding["weight"] = (value / total_value) if total_value > 0 else 0
+
+    filing["holdings"] = sanitized
+    filing["holdings_count"] = len(sanitized)
+    filing["total_value_usd"] = int(round(total_value))
+    return removed
+
+
 def main() -> None:
     refresh_shares = os.environ.get("REFRESH_SHARES_FROM_SEC", "").strip() == "1"
-    payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    original_text = DATA_PATH.read_text(encoding="utf-8")
+    payload = json.loads(original_text)
+
+    needs_ticker_updates = any(
+        filing_needs_ticker_update(filing)
+        for manager in payload.get("managers", [])
+        for filing in manager.get("filings", [])
+    )
+
     cached_tickers = build_cached_ticker_map(payload)
     by_name = dict(cached_tickers)
-    try:
-        sec_tickers = choose_best_tickers()
-        by_name.update(sec_tickers)
-        print(f"[info] ticker map loaded from SEC ({len(sec_tickers)}), cached ({len(cached_tickers)})")
-    except Exception as exc:
-        print(f"[warn] ticker map fetch failed; using cached mappings only: {exc}")
+    if needs_ticker_updates:
+        try:
+            sec_tickers = choose_best_tickers()
+            by_name.update(sec_tickers)
+            print(f"[info] ticker map loaded from SEC ({len(sec_tickers)}), cached ({len(cached_tickers)})")
+        except Exception as exc:
+            print(f"[warn] ticker map fetch failed; using cached mappings only: {exc}")
+    else:
+        print(f"[info] no missing tickers detected; using cached ticker map only ({len(cached_tickers)})")
 
     total_filings = sum(len(m.get("filings", [])) for m in payload.get("managers", []))
     filing_counter = 0
+    processed_filings = 0
+    skipped_unchanged_filings = 0
     share_success = 0
     share_failed = 0
     share_skipped = 0
+    ticker_updates = 0
+    sanitized_rows_removed = 0
 
     for manager in payload.get("managers", []):
         manager_id = manager.get("id")
@@ -325,8 +445,21 @@ def main() -> None:
             filing_counter += 1
             quarter = filing.get("quarter")
             info_table_url = filing.get("info_table_url", "")
+            needs_ticker_update = filing_needs_ticker_update(filing)
+            needs_share_refresh = refresh_shares and bool(info_table_url)
+            needs_sanitization = filing_needs_sanitization(filing)
+
+            if not needs_ticker_update and not needs_share_refresh and not needs_sanitization:
+                skipped_unchanged_filings += 1
+                continue
+
+            processed_filings += 1
+            removed_noise_rows = sanitize_filing_holdings(filing)
+            if removed_noise_rows:
+                sanitized_rows_removed += removed_noise_rows
+
             shares_by_code: dict[str, float] = {}
-            if refresh_shares and info_table_url:
+            if needs_share_refresh:
                 try:
                     xml_bytes = fetch_bytes(info_table_url)
                     shares_by_code = parse_info_table_shares(xml_bytes)
@@ -341,29 +474,51 @@ def main() -> None:
                 code = (holding.get("code") or "").strip()
                 issuer = (holding.get("issuer") or "").strip()
                 if code in shares_by_code:
-                    holding["shares"] = normalize_shares_number(shares_by_code[code])
+                    next_shares = normalize_shares_number(shares_by_code[code])
+                    if holding.get("shares") != next_shares:
+                        holding["shares"] = next_shares
                 elif "shares" not in holding:
                     holding["shares"] = None
 
-                ticker = resolve_ticker(code, issuer, by_name)
+                existing_ticker = normalize_ticker(holding.get("ticker") or "")
+                if existing_ticker:
+                    if holding.get("ticker") != existing_ticker:
+                        holding["ticker"] = existing_ticker
+                    continue
+
+                ticker = normalize_ticker(resolve_ticker(code, issuer, by_name))
                 if ticker:
                     holding["ticker"] = ticker
-                else:
+                    ticker_updates += 1
+                elif "ticker" in holding:
                     holding.pop("ticker", None)
 
             print(f"[{filing_counter}/{total_filings}] {manager_id} {quarter} holdings={len(filing.get('holdings', []))}")
 
     payload["generated_at_utc"] = payload.get("generated_at_utc")
-    payload["ticker_mapping_note"] = (
+    ticker_mapping_note = (
         "Ticker resolved from SEC company_tickers_exchange.json when available, plus local overrides and cached fallback."
     )
-    if refresh_shares:
-        payload["shares_note"] = "shares refreshed from infoTable shrsOrPrnAmt/sshPrnamt when fetch succeeds."
-    else:
-        payload["shares_note"] = "shares reused from history dataset; set REFRESH_SHARES_FROM_SEC=1 to force SEC re-fetch."
+    if payload.get("ticker_mapping_note") != ticker_mapping_note:
+        payload["ticker_mapping_note"] = ticker_mapping_note
 
-    DATA_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Wrote {DATA_PATH}")
+    if refresh_shares:
+        shares_note = "shares refreshed from infoTable shrsOrPrnAmt/sshPrnamt when fetch succeeds."
+    else:
+        shares_note = "shares reused from history dataset; set REFRESH_SHARES_FROM_SEC=1 to force SEC re-fetch."
+    if payload.get("shares_note") != shares_note:
+        payload["shares_note"] = shares_note
+
+    output_text = json.dumps(payload, ensure_ascii=False, indent=2)
+    if output_text != original_text:
+        DATA_PATH.write_text(output_text, encoding="utf-8")
+        print(f"Wrote {DATA_PATH}")
+    else:
+        print(f"No file changes for {DATA_PATH}")
+
+    print(
+        f"Enrich summary: processed={processed_filings}, skipped={skipped_unchanged_filings}, ticker_updates={ticker_updates}, sanitized_rows={sanitized_rows_removed}"
+    )
     if refresh_shares:
         print(f"Shares fetch success={share_success}, failed={share_failed}")
     else:

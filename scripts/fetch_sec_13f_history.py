@@ -369,8 +369,10 @@ def parse_info_table_legacy(raw_bytes: bytes) -> list[dict]:
                 aggregated[code]["shares"] = 0
             aggregated[code]["shares"] += shares
 
-    full_row_pattern = re.compile(r"^(?P<prefix>.+?)\s+(?P<cusip>[0-9A-Z]{9})\s+(?P<value>[0-9,]+)\s+(?P<shares>[0-9,]+)\b")
-    continuation_pattern = re.compile(r"^(?P<value>[0-9,]+)\s+(?P<shares>[0-9,]+)\b")
+    full_row_pattern = re.compile(
+        r"^(?P<prefix>.+?)\s+(?P<cusip>[0-9A-Z]{9})\s+\$?\s*(?P<value>[0-9,]+)\s+(?P<shares>[0-9,]+)\b"
+    )
+    continuation_pattern = re.compile(r"^\$?\s*(?P<value>[0-9,]+)\s+(?P<shares>[0-9,]+)\b")
 
     for block in table_blocks:
         pending_name_parts: list[str] = []
@@ -530,21 +532,52 @@ def build_filing_payload(cik: int, row: dict) -> dict:
 
 
 def choose_best_by_quarter(filings: list[dict]) -> list[dict]:
-    by_quarter: dict[str, dict] = {}
+    grouped: dict[str, list[dict]] = {}
     for filing in filings:
-        amend_score = 1 if filing["form"].endswith("/A") else 0
-        score = (
-            filing["total_value_usd"],
-            filing["holdings_count"],
-            filing["filed_date"],
-            amend_score,
-            filing["accession"],
-        )
-        current = by_quarter.get(filing["quarter"])
-        if not current or score > current["_score"]:
-            copied = dict(filing)
-            copied["_score"] = score
-            by_quarter[filing["quarter"]] = copied
+        quarter = filing.get("quarter")
+        if quarter:
+            grouped.setdefault(quarter, []).append(filing)
+
+    by_quarter: dict[str, dict] = {}
+
+    def has_positive_payload(filing: dict) -> bool:
+        return (filing.get("total_value_usd") or 0) > 0 or (filing.get("holdings_count") or 0) > 0
+
+    for quarter, quarter_filings in grouped.items():
+        base_rows = [row for row in quarter_filings if (row.get("form") or "").upper() == "13F-HR"]
+        amend_rows = [row for row in quarter_filings if (row.get("form") or "").upper().endswith("/A")]
+
+        candidates = quarter_filings
+        if base_rows:
+            positive_base = [row for row in base_rows if has_positive_payload(row)]
+            if positive_base:
+                candidates = positive_base
+            else:
+                positive_amend = [row for row in amend_rows if has_positive_payload(row)]
+                candidates = positive_amend or base_rows
+        elif amend_rows:
+            positive_amend = [row for row in amend_rows if has_positive_payload(row)]
+            candidates = positive_amend or amend_rows
+
+        best_filing = None
+        best_score = None
+        for filing in candidates:
+            form_pref = 1 if (filing.get("form") or "").upper() == "13F-HR" else 0
+            score = (
+                form_pref,
+                filing.get("total_value_usd", 0),
+                filing.get("holdings_count", 0),
+                filing.get("filed_date", ""),
+                filing.get("accession", ""),
+            )
+            if best_score is None or score > best_score:
+                best_score = score
+                best_filing = filing
+
+        if best_filing:
+            copied = dict(best_filing)
+            copied["_score"] = best_score
+            by_quarter[quarter] = copied
 
     selected = list(by_quarter.values())
     selected.sort(key=lambda x: x["report_date"])

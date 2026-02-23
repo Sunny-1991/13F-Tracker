@@ -1422,6 +1422,8 @@ INVESTOR_DEFS.forEach((def) => {
 });
 
 const INVESTORS = INVESTOR_DEFS.map((def) => buildInvestor(def));
+const INVESTOR_BY_ID = new Map(INVESTORS.map((inv) => [inv.id, inv]));
+let SEC_FILING_SNAPSHOT_CACHE = new WeakMap();
 
 const state = {
   activeInvestorId: "buffett",
@@ -1434,6 +1436,8 @@ const state = {
   catalogTreemapFocusKey: "",
   catalogTreemapFocusInstitutionIds: new Set(),
   secHistoryById: new Map(),
+  availableQuartersByInvestorId: new Map(),
+  latestQuarterByInvestorId: new Map(),
   derivedSecTickerByCode: new Map(),
   derivedSecTickerByIssuer: new Map(),
   managerMetaById: new Map(),
@@ -1844,7 +1848,7 @@ function filedDate(quarter, lagDays) {
 }
 
 function activeInvestor() {
-  return INVESTORS.find((inv) => inv.id === state.activeInvestorId) || null;
+  return INVESTOR_BY_ID.get(state.activeInvestorId) || null;
 }
 
 function selectedInvestors() {
@@ -1972,7 +1976,14 @@ function detectFilingValueScales(filings) {
   return scales;
 }
 
+function resetSecFilingSnapshotCache() {
+  SEC_FILING_SNAPSHOT_CACHE = new WeakMap();
+}
+
 function snapshotFromSecFiling(filing) {
+  if (SEC_FILING_SNAPSHOT_CACHE.has(filing)) {
+    return SEC_FILING_SNAPSHOT_CACHE.get(filing);
+  }
   const valueScale = filing.value_scale || 1;
   const total = ((Number(filing.total_value_usd) || 0) * valueScale) / 1e9;
   const holdings = (filing.holdings || [])
@@ -2010,7 +2021,7 @@ function snapshotFromSecFiling(filing) {
     .sort((a, b) => b.value - a.value);
   applyUniqueHoldingLabels(holdings);
 
-  return {
+  const snapshot = {
     holdings,
     total,
     positions: filing.holdings_count || holdings.length,
@@ -2018,6 +2029,8 @@ function snapshotFromSecFiling(filing) {
     filingDate: filing.filed_date || filing.filing_date || "--",
     source: "sec",
   };
+  SEC_FILING_SNAPSHOT_CACHE.set(filing, snapshot);
+  return snapshot;
 }
 
 function getDisplaySnapshot(investor, quarter) {
@@ -2683,6 +2696,8 @@ async function loadSecHistoryData() {
     const payload = await resp.json();
     const historyById = new Map();
     const availableIds = new Set();
+    const availableQuartersByInvestorId = new Map();
+    const latestQuarterByInvestorId = new Map();
     const managerMetaById = new Map();
 
     (payload.managers || []).forEach((manager) => {
@@ -2694,16 +2709,24 @@ async function loadSecHistoryData() {
           qMap.set(filing.quarter, filing);
         }
       });
+      const availableQuarters = Array.from(qMap.keys())
+        .filter((quarter) => parseQuarterToOrder(quarter) >= 0)
+        .sort((a, b) => parseQuarterToOrder(a) - parseQuarterToOrder(b));
       historyById.set(manager.id, qMap);
+      availableQuartersByInvestorId.set(manager.id, availableQuarters);
+      latestQuarterByInvestorId.set(manager.id, availableQuarters.length ? availableQuarters[availableQuarters.length - 1] : null);
       managerMetaById.set(manager.id, manager);
       availableIds.add(manager.id);
     });
     const derivedTickerMaps = buildDerivedSecTickerMaps(payload.managers || []);
     state.secHistoryById = historyById;
+    state.availableQuartersByInvestorId = availableQuartersByInvestorId;
+    state.latestQuarterByInvestorId = latestQuarterByInvestorId;
     state.derivedSecTickerByCode = derivedTickerMaps.byCode;
     state.derivedSecTickerByIssuer = derivedTickerMaps.byIssuer;
     state.managerMetaById = managerMetaById;
     state.secHistoryLoaded = true;
+    resetSecFilingSnapshotCache();
     state.styleRadarScaleCap = computeGlobalStyleRadarScaleCap();
 
     if (!availableIds.has(state.activeInvestorId)) {
@@ -2718,7 +2741,6 @@ async function loadSecHistoryData() {
     const quarters = active ? getAvailableQuartersForInvestor(active) : [];
     state.quarter = quarters.length ? quarters[quarters.length - 1] : LATEST_QUARTER;
 
-    renderInstitutionGrid();
     renderAll();
   } catch (error) {
     console.warn("SEC history data not loaded", error);
@@ -2729,18 +2751,14 @@ function getAvailableQuartersForInvestor(investor) {
   if (!investor) {
     return [];
   }
-  const qMap = state.secHistoryById.get(investor.id);
-  if (!qMap) {
-    return [];
-  }
-  return Array.from(qMap.keys())
-    .filter((quarter) => parseQuarterToOrder(quarter) >= 0)
-    .sort((a, b) => parseQuarterToOrder(a) - parseQuarterToOrder(b));
+  return state.availableQuartersByInvestorId.get(investor.id) || [];
 }
 
 function getLatestQuarterForInvestor(investor) {
-  const quarters = getAvailableQuartersForInvestor(investor);
-  return quarters.length ? quarters[quarters.length - 1] : null;
+  if (!investor) {
+    return null;
+  }
+  return state.latestQuarterByInvestorId.get(investor.id) || null;
 }
 
 function getLatestSnapshotForInvestor(investor) {
@@ -3883,7 +3901,7 @@ function buildTreemapLayout(items, width, height, metricKey = "value") {
 }
 
 function getInvestorById(investorId) {
-  return INVESTORS.find((inv) => inv.id === investorId) || null;
+  return INVESTOR_BY_ID.get(investorId) || null;
 }
 
 function applyCatalogTreemapFocus(nextKey) {
@@ -4368,9 +4386,7 @@ function renderQuarterSelector() {
   }
   const investor = activeInvestor();
   const availableQuarters = investor ? getAvailableQuartersForInvestor(investor) : [];
-  const options = availableQuarters.length
-    ? [...availableQuarters].sort((a, b) => quarterIndex(b) - quarterIndex(a))
-    : [LATEST_QUARTER];
+  const options = availableQuarters.length ? [...availableQuarters].reverse() : [LATEST_QUARTER];
 
   if (!options.includes(state.quarter)) {
     state.quarter = options[0];
@@ -4783,10 +4799,10 @@ function renderChangesCards() {
 }
 
 function renderAll() {
-  renderInstitutionGrid();
-  renderCatalogTreemap();
   if (state.view === "list") {
     showCatalogView();
+    renderInstitutionGrid();
+    renderCatalogTreemap();
     return;
   }
   showDetailView();
