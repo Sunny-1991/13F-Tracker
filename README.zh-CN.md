@@ -158,7 +158,15 @@ python3 scripts/enrich_sec_13f_holdings.py
 1. 打开仓库 `Settings -> Secrets and variables -> Actions`。
 2. 新增密钥 `SEC_USER_AGENT`，值建议为合规的 SEC User-Agent，例如：
    - `13F-Tracker-AutoUpdate/1.0 (contact: your-email@example.com)`
-3. 可在 Actions 页面先手动运行一次，确认自动链路正常。
+3. （可选但推荐）新增密钥 `SEC_CONTACT_EMAIL`，填真实可联系邮箱。  
+   抓取层会自动规范化 User-Agent，并将该邮箱作为回退联系方式。
+4. 在 Actions 页面先手动运行一次，确认自动链路正常。
+
+重要说明：
+
+- 不建议在 SEC 联系方式里使用 GitHub no-reply 域名（如 `users.noreply.github.com`）。
+- 项目已内置 User-Agent 自动规范化，避免因联系方式格式/域名导致的 403 硬失败。
+- 即使 SEC 临时拒绝实时抓取，历史脚本也会回退到本地缓存，确保任务不中断。
 
 ## 目录结构
 
@@ -175,6 +183,7 @@ guru-13f-monitor/
     sec-13f-history.json
     sec-13f-latest.json
   scripts/
+    sec_http.py
     fetch_sec_13f_history.py
     fetch_sec_13f_latest.py
     enrich_sec_13f_holdings.py

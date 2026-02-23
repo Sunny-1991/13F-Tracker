@@ -33,6 +33,10 @@ jobs:
 
       - name: Prepare SEC User-Agent
         run: |
+          if [ -n "${{ secrets.SEC_CONTACT_EMAIL }}" ]; then
+            echo "SEC_CONTACT_EMAIL=${{ secrets.SEC_CONTACT_EMAIL }}" >> "$GITHUB_ENV"
+          fi
+
           if [ -n "${{ secrets.SEC_USER_AGENT }}" ]; then
             echo "SEC_USER_AGENT=${{ secrets.SEC_USER_AGENT }}" >> "$GITHUB_ENV"
           else

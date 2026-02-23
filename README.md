@@ -158,7 +158,15 @@ Recommended setup:
 1. Go to repository `Settings -> Secrets and variables -> Actions`.
 2. Add secret `SEC_USER_AGENT` with a compliant SEC User-Agent string, for example:
    - `13F-Tracker-AutoUpdate/1.0 (contact: your-email@example.com)`
-3. (Optional) Run the workflow manually once from the Actions tab to verify.
+3. (Optional, recommended) Add secret `SEC_CONTACT_EMAIL` with a real contact mailbox.  
+   The fetch layer auto-normalizes User-Agent and uses this as fallback contact.
+4. Run the workflow manually once from the Actions tab to verify.
+
+Important:
+
+- Avoid GitHub no-reply mailbox domains (for example `users.noreply.github.com`) in SEC contact headers.
+- The updater now auto-normalizes blocked/missing contact headers to keep jobs from failing with hard 403s.
+- If SEC rejects live fetches, the history pipeline reuses cached filings so the job remains available.
 
 ## Project Structure
 
@@ -175,6 +183,7 @@ guru-13f-monitor/
     sec-13f-history.json
     sec-13f-latest.json
   scripts/
+    sec_http.py
     fetch_sec_13f_history.py
     fetch_sec_13f_latest.py
     enrich_sec_13f_holdings.py
