@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-02-23T03:16:06Z",
+  "generated_at_utc": "2026-03-02T06:09:47Z",
   "source": "Derived from sec-13f-history.json (SEC EDGAR upstream)",
   "managers": [
     {
@@ -15596,36 +15596,34 @@
       "latest_filing": {
         "quarter": "2025Q4",
         "report_date": "2025-12-31",
-        "filed_date": "2026-02-19",
-        "form": "13F-HR/A",
-        "accession": "0002043585-26-000012",
+        "filed_date": "2026-02-17",
+        "form": "13F-HR",
+        "accession": "0002043585-26-000011",
         "primary_doc": "xslForm13F_X02/primary_doc.xml",
         "source_cik": "0001709323",
-        "info_table_file": "13fhciq425v2.xml",
-        "filing_url": "https://www.sec.gov/Archives/edgar/data/1709323/000204358526000012/xslForm13F_X02/primary_doc.xml",
-        "info_table_url": "https://www.sec.gov/Archives/edgar/data/1709323/000204358526000012/13fhciq425v2.xml",
+        "info_table_file": "13fhciq425.xml",
+        "filing_url": "https://www.sec.gov/Archives/edgar/data/1709323/000204358526000011/xslForm13F_X02/primary_doc.xml",
+        "info_table_url": "https://www.sec.gov/Archives/edgar/data/1709323/000204358526000011/13fhciq425.xml",
         "holdings_count": 9,
         "total_value_usd": 3568876223,
         "holdings": [
-          {
-            "code": "02079K305",
-            "cusip": "02079K305",
-            "issuer": "ALPHABET INC",
-            "title_of_class": "CAP STK CL A",
-            "value_usd": 796052900,
-            "shares": 2543300,
-            "weight": 0.2230542193841728,
-            "ticker": "GOOG"
-          },
           {
             "code": "02079K107",
             "cusip": "02079K107",
             "issuer": "ALPHABET INC",
             "title_of_class": "CAP STK CL C",
+            "value_usd": 796052900,
+            "shares": 2543300,
+            "weight": 0.2230542193841728
+          },
+          {
+            "code": "02079K305",
+            "cusip": "02079K305",
+            "issuer": "ALPHABET INC",
+            "title_of_class": "CAP STK CL A",
             "value_usd": 769217940,
             "shares": 2451300,
-            "weight": 0.21553505695789998,
-            "ticker": "GOOG"
+            "weight": 0.21553505695789998
           },
           {
             "code": "060505104",
@@ -15634,8 +15632,7 @@
             "title_of_class": "COM",
             "value_usd": 573726285,
             "shares": 10431387,
-            "weight": 0.16075824689647691,
-            "ticker": "BAC"
+            "weight": 0.16075824689647691
           },
           {
             "code": "722304102",
@@ -15644,8 +15641,7 @@
             "title_of_class": "SPONSORED ADS",
             "value_usd": 522501120,
             "shares": 4608000,
-            "weight": 0.14640494299933585,
-            "ticker": "PDD"
+            "weight": 0.14640494299933585
           },
           {
             "code": "084670702",
@@ -15654,8 +15650,7 @@
             "title_of_class": "CL B NEW",
             "value_usd": 451253535,
             "shares": 897749,
-            "weight": 0.12644135206815213,
-            "ticker": "BRK-A"
+            "weight": 0.12644135206815213
           },
           {
             "code": "27579R104",
@@ -15664,8 +15659,7 @@
             "title_of_class": "COM",
             "value_usd": 312034089,
             "shares": 2776351,
-            "weight": 0.08743202888042553,
-            "ticker": "EWBC"
+            "weight": 0.08743202888042553
           },
           {
             "code": "674599105",
@@ -15674,8 +15668,7 @@
             "title_of_class": "COM",
             "value_usd": 60302480,
             "shares": 1466500,
-            "weight": 0.016896769804280207,
-            "ticker": "OXY"
+            "weight": 0.016896769804280207
           },
           {
             "code": "227046109",
@@ -15684,8 +15677,7 @@
             "title_of_class": "COM",
             "value_usd": 53720158,
             "shares": 628159,
-            "weight": 0.015052401552565696,
-            "ticker": "CROX"
+            "weight": 0.015052401552565696
           },
           {
             "code": "037833100",
@@ -15694,8 +15686,7 @@
             "title_of_class": "COM",
             "value_usd": 30067716,
             "shares": 110600,
-            "weight": 0.008424981456690885,
-            "ticker": "AAPL"
+            "weight": 0.008424981456690885
           }
         ],
         "entity_name": "Himalaya Capital Management LLC"
